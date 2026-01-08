@@ -12,6 +12,10 @@ do
     PRE_TOKENS, KEYWORDS = info[1], info[2]
 end
 
+local __signed = "__signed"
+
+local __unsigned = "__unsigned"
+
 local __types = {
     [PRE_TOKENS.INT] = true,
     [PRE_TOKENS.FLOAT] = true,
@@ -29,7 +33,14 @@ local __modifiers = {
     [PRE_TOKENS.UNSIGNED] = true,
     [PRE_TOKENS.OPEN_BRACKETS] = true,
     [PRE_TOKENS.CLOSE_BRACKETS] = true,
-    [PRE_TOKENS.ASTERISK] = true
+    [PRE_TOKENS.ASTERISK] = true,
+	[PRE_TOKENS.LONG] = true,
+	[PRE_TOKENS.SHORT] = true,
+}
+
+local __qualifiers = {
+	[PRE_TOKENS.LONG] = true,
+	[PRE_TOKENS.SHORT] = true,
 }
 
 local __types_and_modifiers = {
@@ -495,7 +506,7 @@ function parser:parse_call()
     }
 end
 
-function parser:parse_function_declaration(name, type, modifiers)
+function parser:parse_function_declaration(name, type, modifiers, qualifiers)
 
     local args = {}
 
@@ -535,6 +546,7 @@ function parser:parse_function_declaration(name, type, modifiers)
         init_args = args,
         return_type = type,
         return_modifiers = modifiers,
+		return_qualifiers = qualifiers,
         body = {}
     }
 end
@@ -673,8 +685,19 @@ function parser:parse_assignment()
 end
 
 function parser:parse_variable_types()
-    local type = self:TCEexpect(__types).buf
+    local type = self:Texpect(__types)
+	if type then
+		self:consume()
+		type = type.buf
+	end
+
     local modifiers = {}
+	local qualifiers = {}
+
+	local long_count = 0
+	local is_short = false
+
+	local sign = nil
 
     while self:Texpect(__modifiers) do
         local mod = self:consume()
@@ -696,7 +719,39 @@ function parser:parse_variable_types()
                 size = size
             })
 
-        else
+		elseif self:token_in_class(mod, {[PRE_TOKENS.SIGNED] = true, [PRE_TOKENS.UNSIGNED] = true}) then
+			if sign then
+				error("Variable can't be 'signed' and 'unsigned' ate the same time")
+			end
+			if mod.token == PRE_TOKENS.UNSIGNED then
+				sign = __unsigned
+			end
+
+			sign = __signed
+
+        elseif self:token_in_class(mod, __qualifiers) then
+			if #modifiers > 0 then
+				error("Qualifiers need to be along the type and can only be aplyed to a type")
+			end
+
+			if mod.token == PRE_TOKENS.LONG then
+				if long_count >= 2 then
+					error("Variable can't be 'long long long'")
+				end
+				long_count = long_count + 1
+			elseif mod.token == PRE_TOKENS.SHORT then
+				if is_short then
+					error("Variable can't be 'short short'")
+				end
+				is_short = true
+			end
+
+			table.insert(qualifiers, {
+                kind = KINDS.QUALIFICATOR,
+                value = mod.buf
+            })
+		else
+			
             table.insert(modifiers, {
                 kind = KINDS.MODIFIER,
                 value = mod.buf
@@ -704,10 +759,14 @@ function parser:parse_variable_types()
         end
     end
 
+	if is_short and long_count > 0 then
+		error("Variable can't be 'short' and 'long' at the same time")
+	end
+
 	if self:expect(PRE_TOKENS.FUNCTION) then
 		self:consume()
 		local name = self:CEexpect(PRE_TOKENS.NAME).buf
-		return self:parse_function_declaration(name, type, modifiers), true
+		return self:parse_function_declaration(name, type, modifiers,  qualifiers), true
 	end
 
     local name = self:CEexpect(PRE_TOKENS.NAME).buf
@@ -718,6 +777,7 @@ function parser:parse_variable_types()
             kind = KINDS.NULL_VAR_DECLARATION,
             name = name,
             type = type,
+			qualifiers = qualifiers,
             modifiers = modifiers
         }
     end
@@ -731,6 +791,7 @@ function parser:parse_variable_types()
         name = name,
         type = type,
         modifiers = modifiers,
+		qualifiers = qualifiers,
         value = value
     }
 end
