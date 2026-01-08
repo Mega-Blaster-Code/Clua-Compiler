@@ -3,7 +3,7 @@ local module = {}
 local tokens = {
 	-- ========= GENERIC
 	SEMICOLON = "__SEMICOLON",
-	STRING = "__STRING",
+	STRING_LITERAL = "__STRING_LITERAL",
 	CHAR_LITERAL = "__CHAR_LITERAL",
 	NAME = "__NAME",
 	EQUAL_ASSIGNING = "__EQUAL_ASSIGNING",
@@ -18,6 +18,8 @@ local tokens = {
 	COLON = "__COLON",
 	NEW_LINE = "__NEW_LINE",
 	AMPERSAND = "__AMPERSAND",
+
+	POINTER = "__POINTER",
 
 	
 	LINE_COMMENT = "__LINE_COMMENT",

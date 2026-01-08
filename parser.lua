@@ -27,6 +27,9 @@ local __modifiers = {
     [PRE_TOKENS.VOLATILE] = true,
     [PRE_TOKENS.SIGNED] = true,
     [PRE_TOKENS.UNSIGNED] = true,
+    [PRE_TOKENS.OPEN_BRACKETS] = true,
+    [PRE_TOKENS.CLOSE_BRACKETS] = true,
+    [PRE_TOKENS.ASTERISK] = true
 }
 
 local __types_and_modifiers = {
@@ -37,10 +40,13 @@ local __types_and_modifiers = {
     [PRE_TOKENS.BOOL] = true,
     [PRE_TOKENS.VOID] = true,
     [PRE_TOKENS.NAME] = true,
-	[PRE_TOKENS.CONST] = true,
+    [PRE_TOKENS.CONST] = true,
     [PRE_TOKENS.VOLATILE] = true,
     [PRE_TOKENS.SIGNED] = true,
     [PRE_TOKENS.UNSIGNED] = true,
+    [PRE_TOKENS.OPEN_BRACKETS] = true,
+    [PRE_TOKENS.CLOSE_BRACKETS] = true,
+    [PRE_TOKENS.ASTERISK] = true
 }
 
 local __numbers = {
@@ -99,8 +105,9 @@ end
 local parser = {}
 parser.__index = parser
 
-function _M.new(tokens)
+function _M.new(file_path, tokens)
     local self = setmetatable({}, parser)
+    self.file_path = file_path
 
     self.tokens = tokens
     self.AST = {}
@@ -121,6 +128,24 @@ function parser:CEexpect(pretoken, length)
         error(string.format("Error expected ['%s'] but got ['%s']", pretoken, tostring((p or {}).token)))
     end
     return self:consume()
+end
+
+function parser:TCEexpect(tbl, length)
+    local p = self:peek(length)
+    if not p or not tbl[p.token] then
+        error(string.format("Error expected [custom table] but got ['%s']", tostring((p or {}).token)))
+    end
+    return self:consume()
+end
+
+function parser:token_in_class(token, tbl)
+    if not token then
+        error("Expected token but received ['nil']")
+    end
+    if not tbl then
+        error("Compiler error. Expected custom table but received ['nil']")
+    end
+    return tbl[token.token]
 end
 
 function parser:Econsume()
@@ -186,7 +211,7 @@ function parser:Texpect(tbl, length)
     if not tbl[p.token] then
         return false
     end
-    return true
+    return p
 end
 
 function parser:Cexpect(pretoken, length)
@@ -197,7 +222,7 @@ function parser:Cexpect(pretoken, length)
         return false
     end
     local t = self:consume()
-    return true
+    return t
 end
 
 function parser:parse_primary(is_pointer)
@@ -222,10 +247,18 @@ function parser:parse_primary(is_pointer)
         }
     end
 
-    if tok.token == PRE_TOKENS.STRING then
+    if tok.token == PRE_TOKENS.STRING_LITERAL then
         self:consume()
         return {
             kind = KINDS.STRING_LITERAL,
+            value = tok.buf
+        }
+    end
+
+    if tok.token == PRE_TOKENS.CHAR_LITERAL then
+        self:consume()
+        return {
+            kind = KINDS.CHAR_LITERAL,
             value = tok.buf
         }
     end
@@ -243,32 +276,62 @@ function parser:parse_primary(is_pointer)
             return self:parse_call()
         end
 
-		self:consume()
-
         local node = {
             kind = KINDS.VAR_REF,
             name = tok.buf
-		}
+        }
 
-		if self:expect(PRE_TOKENS.DOT) then
-			while self:expect(PRE_TOKENS.DOT) do
-				self:consume() -- '.'
-				local field = self:CEexpect(PRE_TOKENS.NAME)
-
-				node = {
-					kind = KINDS.FIELD_ACCESS,
-					base = node,
-					field = field.buf
-				}
-			end
-			return node
-		end
+        self:consume()
 
         return node
     end
 
     error(string.format("Invalid primary expression ['%s'] ['%s']", tok.token, tok.buf))
 end
+
+function parser:parse_postfix()
+    local expr = self:parse_primary()
+
+    while true do
+        if self:expect(PRE_TOKENS.OPEN_BRACKETS) then
+            self:consume()
+            local index = self:parse_expression()
+            self:CEexpect(PRE_TOKENS.CLOSE_BRACKETS)
+            expr = {
+                kind = KINDS.INDEX_FIELD_ACCESS,
+                base = expr,
+                index = index
+            }
+
+        elseif self:expect(PRE_TOKENS.DOT) then
+            self:consume()
+            local name = self:CEexpect(PRE_TOKENS.NAME).buf
+            expr = {
+                kind = KINDS.FIELD_ACCESS,
+                base = expr,
+                name = name
+            }
+
+        elseif self:expect(PRE_TOKENS.POINTER) then
+            self:consume()
+            local name = self:CEexpect(PRE_TOKENS.NAME).buf
+            expr = {
+                kind = KINDS.POINTER_FIELD_ACCESS,
+                base = expr,
+                name = name
+            }
+
+        elseif self:expect(PRE_TOKENS.OPEN_PARENTHESES) then
+            expr = self:finish_call(expr)
+
+        else
+            break
+        end
+    end
+
+    return expr
+end
+
 
 function parser:parse_unary()
     if self:Texpect(__math_unary) then
@@ -298,7 +361,7 @@ function parser:parse_unary()
         }
     end
 
-    return self:parse_primary()
+    return self:parse_postfix()
 end
 
 function parser:parse_mul()
@@ -336,7 +399,7 @@ end
 function parser:parse_comparison()
     local left = self:parse_add()
 
-    while self:Texpect(__math_level_3) do
+    if self:Texpect(__math_level_3) then
         local op = self:consume()
         left = {
             kind = KINDS.BINARY_EXPRESSION,
@@ -382,6 +445,24 @@ function parser:parse_or()
 end
 
 function parser:parse_expression()
+    if self:expect(PRE_TOKENS.OPEN_BRACKETS) then
+        self:consume()
+        local values_of_array = {}
+        while true do
+            local expr = self:parse_expression()
+            values_of_array[#values_of_array + 1] = expr
+            if not self:expect(PRE_TOKENS.COMMA) then
+                break
+            end
+            self:consume()
+        end
+        self:Eexpect(PRE_TOKENS.CLOSE_BRACKETS)
+        self:consume()
+        return {
+            kind = KINDS.ARRAY,
+            value = values_of_array
+        }
+    end
     return self:parse_or()
 end
 
@@ -414,43 +495,34 @@ function parser:parse_call()
     }
 end
 
-function parser:parse_function_declaration()
-    local type_token = self:consume() -- type
-
-    self:consume() -- function
-
-    local name_token = self:consume() -- name
-
-    local name = name_token.buf
+function parser:parse_function_declaration(name, type, modifiers)
 
     local args = {}
 
-    if self:Eexpect(PRE_TOKENS.OPEN_PARENTHESES) then
-        self:consume()
-        if not self:peek() then
-            error("Incomplete Function declaration")
+    self:Eexpect(PRE_TOKENS.OPEN_PARENTHESES)
+    self:consume()
+
+    if not self:peek() then
+        error("Incomplete Function declaration")
+    end
+
+    while true do
+        if self:expect(PRE_TOKENS.CLOSE_PARENTHESES) then
+            break
         end
-        while true do
-            if self:expect(PRE_TOKENS.CLOSE_PARENTHESES) then
-                break
-            end
 
-            if not self:Texpect(__types) then
-                error(string.format("Expected a 'type' but received ['%s']", self:peek().token))
-            end
+        local var = self:parse_variable_types()
 
-            local type = self:Econsume().buf
-            local name = self:Econsume().buf
+        table.insert(args, {
+            type = var.type,
+            modifiers = var.modifiers
+        })
 
-            table.insert(args, {
-                name = name,
-                type = type
-            })
-
-            if not self:Cexpect(PRE_TOKENS.COMMA) then
-                break
-            end
+        if var.is_function then
+            error("Can't declare a function inside a function arguments")
         end
+
+        self:Cexpect(PRE_TOKENS.COMMA)
     end
 
     self:Eexpect(PRE_TOKENS.CLOSE_PARENTHESES)
@@ -461,83 +533,209 @@ function parser:parse_function_declaration()
         kind = KINDS.FUNCTION_DECLARATION,
         callee = name,
         init_args = args,
+        return_type = type,
+        return_modifiers = modifiers,
         body = {}
     }
 end
 
+function parser:parse_struct_init()
+    self:CEexpect(PRE_TOKENS.OPEN_BRACES)
 
-function parser:parse_var_definition()
-    if not self:peek() or not self:peek(1) then
-        error("Incomplete var definition")
+    local values = {}
+
+    while self:expect(PRE_TOKENS.DOT) do
+        self:consume() -- '.'
+        local name = self:CEexpect(PRE_TOKENS.NAME).buf
+        self:CEexpect(PRE_TOKENS.EQUAL_ASSIGNING)
+        local value
+        if self:expect(PRE_TOKENS.OPEN_BRACES) then
+            value = self:parse_struct_init()
+        else
+            value = self:parse_expression()
+        end
+        table.insert(values, {
+            kind = KINDS.STRUCT_INIT_VAR_DECLARATION,
+            value = value,
+            name = name
+        })
+
+        if not self:Cexpect(PRE_TOKENS.COMMA) then
+            break
+        end
     end
 
-	local var = {
-		kind = KINDS.NULL_VAR_REDEFINITION,
-		type = nil,
-		modifiers = {},
-		value = {},
-	}
+    if #values == 0 then
+        error("Struct can't be empty")
+    end
 
-	if self:Texpect(__types_and_modifiers) then
-		var.kind = KINDS.VAR_DECLARATION
-		if self:Texpect(__types_and_modifiers) then
-			while self:Texpect(__types_and_modifiers) do
-				if self:Texpect(__modifiers) then
-					table.insert(var.modifiers, {
-						kind = KINDS.MODIFIER,
-						value = self:consume().buf
-					})
-				else
-					if not self:Texpect(__types_and_modifiers, 1) then
-						break
-					end
+    self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
 
-					if var.type then
-						error("Variable has two types")
-					end
+    return {
+        kind = KINDS.STRUCT_INIT,
+        values = values
+    }
+end
 
-					if self:expect(PRE_TOKENS.NAME) then
-						var.kind = KINDS.CUSTOM_VAR_DECLARATION
-					end
+function parser:parse_field_access(node)
+    -- print(inspect(node))
 
-					var.type = self:consume().buf
-				end
-			end
-		end
+    local base_now = node
+    base_now.node = {}
 
-		if not var.type then
-			if #var.modifiers > 0 then
-				error("Error variable don't have a type")
-			end
+    while true do
 
-			var.kind = KINDS.VAR_REDEFINITION
-		end
+        if self:expect(PRE_TOKENS.DOT) then
+            self:consume() -- "."
 
-		local name = self:CEexpect(PRE_TOKENS.NAME)
-		var.name = name.buf
+            -- print(self:peek().buf)
+            local name = self:consume().buf
 
-		if not self:expect(PRE_TOKENS.EQUAL_ASSIGNING) then
-			if var.kind == KINDS.CUSTOM_VAR_DECLARATION then
-				var.kind = KINDS.CUSTOM_NULL_VAR_DECLARATION
-			else
-				var.kind = KINDS.NULL_VAR_DECLARATION
-			end
-			var.value = nil
-			
-			return var
-		end
+            local f = {
+                kind = KINDS.FIELD_ACCESS,
+                name = name
+            }
 
-		self:CEexpect(PRE_TOKENS.EQUAL_ASSIGNING)
-		local expression = self:parse_expression()
+            base_now.node = f
+		elseif self:expect(PRE_TOKENS.POINTER) then
+            self:consume() -- "."
 
-		var.value = expression
+            -- print(self:peek().buf)
+            local name = self:consume().buf
 
-		return var
+            local f = {
+                kind = KINDS.POINTER_FIELD_ACCESS,
+                name = name
+            }
+
+            base_now.node = f
+        elseif self:expect(PRE_TOKENS.OPEN_BRACKETS) then
+            self:consume() -- "["
+            local number = self:parse_expression()
+            self:CEexpect(PRE_TOKENS.CLOSE_BRACKETS) -- "["
+
+            local f = {
+                kind = KINDS.INDEX_FIELD_ACCESS,
+                index = number
+            }
+
+            base_now.node = f
+        end
+        -- print(self:peek().token)
+        base_now = base_now.node
+        -- print(inspect(f))
+
+        if not self:expect(PRE_TOKENS.NAME) and not self:expect(PRE_TOKENS.DOT) and not self:expect(PRE_TOKENS.POINTER) and
+            not self:expect(PRE_TOKENS.OPEN_BRACKETS) then
+            base_now.bottom = true
+            break
+        end
+    end
+    return node
+end
+
+function parser:parse_lvalue()
+    local deref = false
+
+    -- *name
+    if self:expect(PRE_TOKENS.ASTERISK) then
+        self:consume()
+        deref = true
+    end
+
+    local name_tok = self:CEexpect(PRE_TOKENS.NAME)
+
+    local base = {
+        kind = (deref and KINDS.DEREF_VAR_REF) or KINDS.VAR_REF,
+        name = name_tok.buf
+    }
+
+    if self:expect(PRE_TOKENS.DOT) or self:expect(PRE_TOKENS.OPEN_BRACKETS) or self:expect(PRE_TOKENS.POINTER) then
+        base = self:parse_field_access(base)
+        base.kind = deref and KINDS.DEREF_VAR_REF_WITH_FIELDS or KINDS.VAR_REF_WITH_FIELDS
+    end
+
+    return base
+end
+
+function parser:parse_assignment()
+    local lvalue = self:parse_expression()
+
+    self:CEexpect(PRE_TOKENS.EQUAL_ASSIGNING)
+
+    local value = self:parse_expression()
+
+    return {
+        kind = KINDS.ASSIGNMENT,
+        target = lvalue,
+        value = value
+    }
+end
+
+function parser:parse_variable_types()
+    local type = self:TCEexpect(__types).buf
+    local modifiers = {}
+
+    while self:Texpect(__modifiers) do
+        local mod = self:consume()
+
+        if mod.token == PRE_TOKENS.ASTERISK then
+            table.insert(modifiers, {
+                kind = KINDS.POINTER_MODIFIER
+            })
+
+        elseif mod.token == PRE_TOKENS.OPEN_BRACKETS then
+            local size = 0
+            if not self:expect(PRE_TOKENS.CLOSE_BRACKETS) then
+                size = self:parse_expression()
+            end
+            self:CEexpect(PRE_TOKENS.CLOSE_BRACKETS)
+
+            table.insert(modifiers, {
+                kind = KINDS.ARRAY_MODIFIER,
+                size = size
+            })
+
+        else
+            table.insert(modifiers, {
+                kind = KINDS.MODIFIER,
+                value = mod.buf
+            })
+        end
+    end
+
+	if self:expect(PRE_TOKENS.FUNCTION) then
+		self:consume()
+		local name = self:CEexpect(PRE_TOKENS.NAME).buf
+		return self:parse_function_declaration(name, type, modifiers), true
 	end
 
+    local name = self:CEexpect(PRE_TOKENS.NAME).buf
 
-    error(string.format("Invalid var defenition ['%s']", self:peek().token))
+    -- declaração sem valor
+    if not self:expect(PRE_TOKENS.EQUAL_ASSIGNING) then
+        return {
+            kind = KINDS.NULL_VAR_DECLARATION,
+            name = name,
+            type = type,
+            modifiers = modifiers
+        }
+    end
+
+    -- declaração com valor
+    self:consume()
+    local value = self:parse_expression()
+
+    return {
+        kind = KINDS.VAR_DECLARATION,
+        name = name,
+        type = type,
+        modifiers = modifiers,
+        value = value
+    }
 end
+
+-- assignment
 
 function parser:parse_if()
     self:consume() -- "if"
@@ -581,7 +779,7 @@ function parser:parse_for()
     self:consume() -- "for"
     self:CEexpect(PRE_TOKENS.OPEN_PARENTHESES) -- "("
 
-    local var = self:parse_var_definition()
+    local var = self:parse_variable_types()
 
     self:CEexpect(PRE_TOKENS.SEMICOLON) -- ";"
 
@@ -589,7 +787,7 @@ function parser:parse_for()
 
     self:CEexpect(PRE_TOKENS.SEMICOLON) -- ";"
 
-    local var1 = self:parse_var_definition()
+    local var1 = self:parse_assignment()
 
     self:CEexpect(PRE_TOKENS.CLOSE_PARENTHESES) -- ")"
 
@@ -609,37 +807,85 @@ end
 function parser:parse_struct()
     self:consume() -- "struct"
 
-	local name = self:CEexpect(PRE_TOKENS.NAME).buf
+    local name = self:CEexpect(PRE_TOKENS.NAME).buf
 
-	self:CEexpect(PRE_TOKENS.OPEN_BRACES)
+    self:CEexpect(PRE_TOKENS.OPEN_BRACES)
 
-	--local variables = self:parse_va
+    if self:expect(PRE_TOKENS.CLOSE_BRACES) then
+        error("Struct can't be empty")
+    end
 
-	self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
-    
+    local variables = {}
+
+    while self:Texpect(__types_and_modifiers) do
+        local decla_var = self:parse_variable_types()
+        if decla_var.kind ~= KINDS.NULL_VAR_DECLARATION and decla_var.kind ~= KINDS.CUSTOM_NULL_VAR_DECLARATION then
+            error("Invalid struct declaration sintax")
+        end
+
+        if decla_var.kind == KINDS.NULL_VAR_DECLARATION then
+            decla_var.kind = KINDS.STRUCT_VAR_DECLARATION
+        else
+            error("some declaration of variables in struct is wrong (i think this error is impossible to triger)")
+        end
+
+        table.insert(variables, decla_var)
+        self:CEexpect(PRE_TOKENS.SEMICOLON)
+    end
+
+    -- print(inspect(variables))
+
+    self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
 
     return {
         kind = KINDS.STRUCT_DECLARATION,
-		variables = {},
-		name = name,
+        variables = variables,
+        name = name
+    }
+end
+
+function parser:parse_return()
+    self:consume() -- "return"
+
+    local expression = self:parse_expression()
+
+    return {
+        kind = KINDS.RETURN,
+        value = expression
     }
 end
 
 function parser:parse_statement()
-    if self:Texpect(__types_and_modifiers)then
-		
-        if self:expect(PRE_TOKENS.FUNCTION, 1) then -- function declaration 'void function test() .. end'
-            local func = self:parse_function_declaration()
-            self:push_back(func)
-
-            self:new_scope(func.body)
+    if self:expect(PRE_TOKENS.NAME) or self:expect(PRE_TOKENS.ASTERISK) then
+        if self:expect(PRE_TOKENS.NAME) and self:expect(PRE_TOKENS.OPEN_PARENTHESES, 1) then -- function call 'test();'
+            self:push_back(self:parse_call())
+            if self.use_semicolan then
+                self:CEexpect(PRE_TOKENS.SEMICOLON)
+            end -- ";"
             return
         end
 
-        -- var declaration 'int x = 10;'
-		self:push_back(self:parse_var_definition())
-		self:CEexpect(PRE_TOKENS.SEMICOLON) -- ";"
-		return
+		if not (self:expect(PRE_TOKENS.NAME) and self:expect(PRE_TOKENS.NAME, 1)) then
+			self:push_back(self:parse_assignment())
+			if self.use_semicolan then
+				self:CEexpect(PRE_TOKENS.SEMICOLON)
+			end -- ";"
+			return
+		end
+    end
+
+    if self:Texpect(__types) then
+        local info, ignore_semicolon = self:parse_variable_types()
+        -- print(inspect(info))
+        self:push_back(info)
+        if not ignore_semicolon then
+            if self.use_semicolan then
+                self:CEexpect(PRE_TOKENS.SEMICOLON)
+            end -- ";"
+            return
+        end
+        self:new_scope(info.body)
+        return
     end
 
     if self:expect(PRE_TOKENS.DO) then -- raw do 'do ... end'
@@ -674,29 +920,23 @@ function parser:parse_statement()
         return
     end
 
-    if self:expect(PRE_TOKENS.NAME) then
-        if self:expect(PRE_TOKENS.OPEN_PARENTHESES, 1) then -- function call 'test();'
-            self:push_back(self:parse_call())
-            self:CEexpect(PRE_TOKENS.SEMICOLON) -- ";"
-            return
-        end
-
-        if self:expect(PRE_TOKENS.EQUAL_ASSIGNING, 1) then -- var redefinition 'x = 6;'
-            self:push_back(self:parse_var_definition())
-            self:CEexpect(PRE_TOKENS.SEMICOLON) -- ";"
-            return
-        end
-    end
-
     if self:expect(PRE_TOKENS.END) then -- end 'end'
         self:end_scope()
         self:consume()
         return
     end
 
-	if self:expect(PRE_TOKENS.STRUCT) then -- end 'end'
-		self:push_back(self:parse_struct())
-        self:CEexpect(PRE_TOKENS.SEMICOLON) -- ";"
+    if self:expect(PRE_TOKENS.RETURN) then -- end 'end'
+        self:push_back(self:parse_return())
+        self:consume()
+        return
+    end
+
+    if self:expect(PRE_TOKENS.STRUCT) then -- end 'end'
+        self:push_back(self:parse_struct())
+        if self.use_semicolan then
+            self:CEexpect(PRE_TOKENS.SEMICOLON)
+        end -- ";"
         return
     end
 
@@ -713,21 +953,19 @@ function parser:parse_statement()
     error(string.format("Invalid statement ['%s']", self:peek().token))
 end
 
-function _M.parse(__t)
-    local parser = _M.new(__t)
-    while parser:peek() do
-        parser:parse_statement()
+function parser:start(use_semicolan)
+    self.use_semicolan = use_semicolan
+    while self:peek() do
+        self:parse_statement()
     end
 
-    parser:end_scope()
+    self:end_scope()
 
-    if #parser.scopes > 0 then
+    if #self.scopes > 0 then
         error("Scope was not closed")
     end
 
-    print(inspect(parser.buffer))
-
-    print(inspect(parser.scopes))
+    print(inspect(self.buffer))
 end
 
 return _M

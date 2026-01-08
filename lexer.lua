@@ -12,6 +12,7 @@ end
 
 local _M = {}
 local matchs_tokens = {}
+
 do
     matchs_tokens = {{
         pattern = "^;$",
@@ -100,15 +101,30 @@ do
     }, {
         pattern = "^&$",
         token = PRE_TOKENS.ADDRESS_OF
+    }, {
+        pattern = "^%%$",
+        token = PRE_TOKENS.MODULE
+    }, {
+        pattern = "^%!$",
+        token = PRE_TOKENS.MODULE
     }}
 end
 
-function _M.tokenize(str)
+function _M.tokenize(file_path, str)
     str = str:gsub("\r\n", "\n")
     local char_pos = 1
 
     local line = 1
     local column = 1
+    local row = 1
+
+    local function error_gene(msg, l, c)
+        l = l or line
+        c = c or column - 1
+        io.stderr:write(string.format("error_gene while consuming file '%s': (Line %d; Column %d)\n", file_path, l, c))
+        io.stderr:write(string.format("%s", msg))
+        os.exit()
+    end
 
     local function consume()
         local c = str:sub(char_pos, char_pos)
@@ -117,6 +133,7 @@ function _M.tokenize(str)
         if c == "\n" then
             line = line + 1
             column = 1
+            row = row + 1
         end
         return (#c > 0 and c) or nil
     end
@@ -136,7 +153,8 @@ function _M.tokenize(str)
             buf = buffer,
             token = token,
             line = line,
-            column = column
+            column = column,
+            row = row
         })
     end
 
@@ -151,6 +169,7 @@ function _M.tokenize(str)
     end
 
     local is_string = false
+    local is_comment = false
 
     local function match_patterns()
         if peek() and peek():match("[ \t]") then
@@ -168,21 +187,54 @@ function _M.tokenize(str)
 
         if peek():match("\"") then
             consume()
-            is_string = not is_string
+            is_string = true
 
-            if is_string then
-                while not peek():match("\"") do
-                    push_back(consume())
-                    if not peek() then
-                        error("Unfinished string")
-                    end
+            local start = {
+                line = line,
+                column = column
+            }
+
+            while not peek():match("\"") do
+                push_back(consume())
+                if not peek() then
+                    error_gene("Unfinished string", start.line, start.column)
                 end
-                consume()
-                is_string = false
-                new_token(buf, PRE_TOKENS.STRING)
-                buf = ""
-                return true
             end
+            consume()
+            is_string = false
+            new_token(buf, PRE_TOKENS.STRING_LITERAL)
+            buf = ""
+            return true
+        end
+
+        if peek() == "-" and peek(1) == "-" and peek(2) == "-" and peek(3) and peek(4) == "*" then
+            consume()
+            consume()
+            consume()
+            consume()
+
+			local start = {line = line, column = column}
+
+            while true do
+                if not peek() then
+                    error_gene("Unfinished multi-line comment", start.line, start.column)
+                end
+
+                if peek() == "*" and peek(1) == "-" and peek(2) == "-" and peek(3) == "-" and peek(4) == "-" then
+                    consume()
+                    consume()
+                    consume()
+                    consume()
+                    consume()
+                    break
+                end
+
+                consume()
+            end
+
+            new_token(buf, PRE_TOKENS.LINE_COMMENT)
+            buf = ""
+            return true
         end
 
         if peek() and peek() == "'" and peek(1) then
@@ -195,7 +247,7 @@ function _M.tokenize(str)
                 buf = ""
                 return true
             else
-                error("Invalid Char literal")
+                error_gene("Invalid Char literal")
             end
         end
 
@@ -237,7 +289,7 @@ function _M.tokenize(str)
             return true
         end
 
-        if peek() and peek():match("[%-%+%*/]") then
+        if peek() and peek():match("[%-%+%*/%%]") then
             if peek():match("%-") and peek(1):match("%-") then
                 push_back(consume())
                 push_back(consume())
@@ -245,6 +297,14 @@ function _M.tokenize(str)
                     push_back(consume())
                 end
                 return false
+            end
+
+			if peek():match("%-") and peek(1):match(">") then
+				consume()
+				consume()
+				new_token(buf, PRE_TOKENS.POINTER)
+				buf = ""
+                return true
             end
             push_back(consume())
             return false
@@ -255,7 +315,7 @@ function _M.tokenize(str)
             return false
         end
 
-        if peek() and peek():match("[=~]") then
+        if peek() and peek():match("[~=]") then
             push_back(consume())
             if peek() and peek():match("=") then
                 push_back(consume())
@@ -304,8 +364,7 @@ function _M.tokenize(str)
         local result = match_token()
 
         if not skip and not result then
-            error(string.format("Somethin went wrong line:%d column:%d   ;  buf['%s'] peek['%s'] %d/%d", line, column,
-                buf, peek(), char_pos - 1, #str))
+            error_gene(string.format("Invalid Token ; buffer['%s'] peek['%s']", buf, peek()))
         end
 
         buf = ""
@@ -313,15 +372,14 @@ function _M.tokenize(str)
 
     for i, token in ipairs(tokens) do
         if not token.token then
-            error(string.format(
-                "Error while generating tokens. Token don't have a 'token' key with info line:%d column:%d  ; buf['%s']",
-                token.line, token.column, tostring(token.buf)))
+            error_gene(string.format(
+                "error while generating tokens. Token don't have a 'token' key ; buffer['%s']", tostring(token.buf)))
         end
 
         if not token.buf then
-            error(string.format(
-                "Error while generating tokens. Token '%s' don't have a valid buffer with info line:%d column:%d  ; buf['%s']",
-                token.token, token.line, token.column, tostring(token.buf)))
+            error_gene(string.format(
+                "error_gene while generating tokens. Token '%s' don't have a valid buffer with info ; pre-token['%s'] buffer['%s']",
+                token.token, tostring(token.buf)))
         end
     end
 
