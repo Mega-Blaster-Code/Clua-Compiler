@@ -18,8 +18,17 @@ do
         pattern = "^;$",
         token = PRE_TOKENS.SEMICOLON
     }, {
+        pattern = "^\n$",
+        token = PRE_TOKENS.NEW_LINE
+    }, {
+        pattern = "^\t$",
+        token = PRE_TOKENS.TAB
+    }, {
         pattern = "^'.'$",
         token = PRE_TOKENS.CHAR_LITERAL
+    },{
+        pattern = "^#$",
+        token = PRE_TOKENS.HASH_TAG
     }, {
         pattern = "^typedef$",
         token = PRE_TOKENS.TYPEDEF
@@ -111,7 +120,6 @@ do
 end
 
 function _M.tokenize(file_path, str)
-    str = str:gsub("\r\n", "\n")
     local char_pos = 1
 
     local line = 1
@@ -172,8 +180,8 @@ function _M.tokenize(file_path, str)
     local is_comment = false
 
     local function match_patterns()
-        if peek() and peek():match("[ \t]") then
-            while peek() and peek():match("[ \t]") do
+        if peek() and peek():match("[ ]") then
+            while peek() and peek():match("[ ]") do
                 consume()
             end
             return true
@@ -181,7 +189,13 @@ function _M.tokenize(file_path, str)
 
         if peek() and peek() == "\n" then
             push_back(consume())
-            buf = ""
+            --buf = ""
+            return true
+        end
+
+		if peek() and peek() == "\t" then
+            push_back(consume())
+            --buf = ""
             return true
         end
 
@@ -213,7 +227,10 @@ function _M.tokenize(file_path, str)
             consume()
             consume()
 
-			local start = {line = line, column = column}
+            local start = {
+                line = line,
+                column = column
+            }
 
             while true do
                 if not peek() then
@@ -299,18 +316,18 @@ function _M.tokenize(file_path, str)
                 return false
             end
 
-			if peek():match("%-") and peek(1):match(">") then
-				consume()
-				consume()
-				new_token(buf, PRE_TOKENS.POINTER)
-				buf = ""
+            if peek():match("%-") and peek(1):match(">") then
+                consume()
+                consume()
+                new_token(buf, PRE_TOKENS.POINTER)
+                buf = ""
                 return true
             end
             push_back(consume())
             return false
         end
 
-        if peek() and peek():match("[%(%{%[%)%}%];,%.%:&]") then
+        if peek() and peek():match("[%(%{%[%)%}%];,%.%:&#]") then
             push_back(consume())
             return false
         end
@@ -364,7 +381,7 @@ function _M.tokenize(file_path, str)
         local result = match_token()
 
         if not skip and not result then
-            error_gene(string.format("Invalid Token ; buffer['%s'] peek['%s']", buf, peek()))
+            error_gene(string.format("Invalid Token ; buffer['%s'] peek['%s']", buf, tostring(peek())))
         end
 
         buf = ""
@@ -372,8 +389,8 @@ function _M.tokenize(file_path, str)
 
     for i, token in ipairs(tokens) do
         if not token.token then
-            error_gene(string.format(
-                "error while generating tokens. Token don't have a 'token' key ; buffer['%s']", tostring(token.buf)))
+            error_gene(string.format("error while generating tokens. Token don't have a 'token' key ; buffer['%s']",
+                tostring(token.buf)))
         end
 
         if not token.buf then

@@ -4,6 +4,12 @@ ctokens.lua
 dumb.lua
 inspect.lua
 out.txt
-code.clua
 test.lua
 clua/
+.gitignore
+todo.todo
+stdint.clua
+stdio.clua
+stdlib.clua
+result.tbl
+ttp.lua

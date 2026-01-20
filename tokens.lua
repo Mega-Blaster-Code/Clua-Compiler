@@ -16,8 +16,12 @@ local tokens = {
 	COMMA = "__COMMA",
 	DOT = "__DOT",
 	COLON = "__COLON",
+
 	NEW_LINE = "__NEW_LINE",
+	TAB = "__TAB",
+
 	AMPERSAND = "__AMPERSAND",
+	HASH_TAG = "__HASH_TAG",
 
 	POINTER = "__POINTER",
 
