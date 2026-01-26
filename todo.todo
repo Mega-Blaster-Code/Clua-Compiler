@@ -1,6 +1,0 @@
-AST{
-	structs,
-	pointers,
-}
-
-Make errors that make some sense and point out where the errors happened.
