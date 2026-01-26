@@ -1,26 +1,29 @@
-#define __WIN32 = true
-
-#undef __WIN32
-
-if (__WIN32) then
-
-end
+struct my_s{
+	int x;
+	int y;
+};
 
 
-----*
 
-#define CASDASDA
+enum TOKENS{
+	NAME,
+	EQUAL_ASSIGNING,
+	EQUAL_COMPARASION,
+};
 
-#define ADD(%0, %1) = ((%0) + (%1))
+x = sizeof(m);
 
-#define __WIN32
+
+#define TEST :: catapimbas ADD
+
+#define ADD(#0, #1) :: ((#0) + (#1))
 
 int my_var_from_def = 0;
 
 --#ifdef __WIN32 = 9
 
 void function add(int a, int b)
-	print("WIN32 %d", ADD(a, b) );
+	print("WIN32 %d", ADD(a, 1) );
 end
 
 --#endif
@@ -210,8 +213,7 @@ free(dyn);
 
 int function main(int argc, char** argv)
 	print("argc =", argc);
-	print("argv[0] =",
-	 argv[0]);
+	print("argv[0] =", argv[0]);
 	return 0;
 end
 ----*
@@ -220,8 +222,8 @@ end
 ----*
 
 [header]
-{<index, type, pointers, [data_size]>}
-{<key_size, key, type, pointers, [data_size]>}
+{<index, type, [pointers], [data_size]>}
+{<key_size, key, type, [pointers], [data_size]>}
 [data]
 
 *----

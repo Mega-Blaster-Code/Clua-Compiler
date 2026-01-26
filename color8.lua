@@ -20,6 +20,11 @@ function module.sbcolor(r, g, b)
 	return string.format("\027[48;2;%d;%d;%dm", r, g, b)
 end
 
+function module.strip_rgb(str)
+	str = str:gsub("\27%[38;2;%d+;%d+;%d+m", "")
+	str = str:gsub("\27%[48;2;%d+;%d+;%d+m", "")
+	return str
+end
 
 
 return module
