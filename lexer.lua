@@ -51,6 +51,9 @@ do
         pattern = "^%:$",
         token = PRE_TOKENS.COLON
     }, {
+        pattern = "^%::$",
+        token = PRE_TOKENS.DOUBLE_COLON
+    }, {
         pattern = "^{$",
         token = PRE_TOKENS.OPEN_BRACES
     }, {
@@ -327,8 +330,11 @@ function _M.tokenize(file_path, str)
             return false
         end
 
-        if peek() and peek():match("[%(%{%[%)%}%];,%.%:&#]") then
+        if peek() and peek():match("[%(%{%[%)%}%];,%.:&#]") then
             push_back(consume())
+			if peek() and peek():match(":") then
+				push_back(consume())
+			end
             return false
         end
 

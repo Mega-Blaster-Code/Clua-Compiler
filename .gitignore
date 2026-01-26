@@ -1,3 +1,7 @@
+*
+!*.*
+.vscode
+
 ast_math.lua
 builtin.lua
 ctokens.lua
