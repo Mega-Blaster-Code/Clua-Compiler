@@ -7,10 +7,8 @@ end
 
 local file2io = require("file2io")
 
-local function start(file_name, tokens)
-    local handler = file2io.open(file_name, file2io.modes.write_binary)
-
-	
+local function start(self, tokens)
+    local handler = file2io.open(self[1], file2io.modes.write_binary)
 
     local out = {}
 

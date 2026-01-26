@@ -16,7 +16,6 @@ local tokens = {
 	COMMA = "__COMMA",
 	DOT = "__DOT",
 	COLON = "__COLON",
-	DOUBLE_COLON = "__COLON",
 
 	NEW_LINE = "__NEW_LINE",
 	TAB = "__TAB",
@@ -45,7 +44,6 @@ local tokens = {
 	END = "__END",
 	FUNCTION = "__FUNCTION",
 	RETURN = "__RETURN",
-	ENUM = "__ENUM",
 
 	-- ========= MATH
 
@@ -82,7 +80,7 @@ local tokens = {
 	BOOL = "__BOOL",
 	STRUCT = "__STRUCT",
 	TYPEDEF = "__TYPEDEF",
-	--SIZEOF = "__SIZEOF", -- stdio.h
+	SIZE_T = "__SIZE_T", -- stdio.h
 
 	-- ========= QUALIFIERS
 	SIGNED = "__SIGNED",
@@ -103,7 +101,6 @@ local keywords = {
 	["end"] = tokens.END,
 	["function"] = tokens.FUNCTION,
 	["return"] = tokens.RETURN,
-	["enum"] = tokens.ENUM,
 
 	["true"] = tokens.TRUE,
 	["false"] = tokens.FALSE,

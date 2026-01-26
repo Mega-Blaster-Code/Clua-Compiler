@@ -72,31 +72,28 @@ local function capture_expr_at(self, pos)
 
     while true do
         local t = self:peek_at(p)
-        if not t then
-            break
-        end
+        if not t then break end
 
         if t.token == PRE_TOKENS.OPEN_PARENTHESES then
             depth = depth + 1
         elseif t.token == PRE_TOKENS.CLOSE_PARENTHESES then
-            if depth == 0 then
-                break
-            end
+            if depth == 0 then break end
             depth = depth - 1
         elseif t.token == PRE_TOKENS.COMMA and depth == 0 then
             break
         end
 
-        expr[#expr + 1] = t
+        expr[#expr+1] = t
         p = p + 1
     end
 
     return expr, p
 end
 
+
 local function get_index(self)
     local t = {}
-    if self:expect(PRE_TOKENS.HASH_TAG) then
+    if self:expect(PRE_TOKENS.MODULE) then
         self:consume()
 
         local index = self:CEexpect(PRE_TOKENS.NUMBER_INT)
@@ -114,78 +111,39 @@ local function get_index(self)
 end
 
 local function get_definition(self)
-    local inti_tokens = {}
+	local inti_tokens = {}
     while self:peek() do
-        if self:expect(PRE_TOKENS.DOUBLE_COLON) or self:expect(PRE_TOKENS.NEW_LINE) then
+        if self:expect(PRE_TOKENS.EQUAL_ASSIGNING) or self:expect(PRE_TOKENS.NEW_LINE) then
             break
         end
         inti_tokens[#inti_tokens + 1] = get_index(self)
     end
-    return inti_tokens
+	return inti_tokens
 end
 
 local function get_ifdefinition(self)
-    local inti_tokens = {}
+	local inti_tokens = {}
     while self:peek() do
         if self:expect(PRE_TOKENS.NEW_LINE) then
             break
         end
         inti_tokens[#inti_tokens + 1] = get_index(self)
     end
-    return inti_tokens
+	return inti_tokens
 end
 
 function directives.define(self)
     ---- print(inspect(self.tokens))
 
     local inti_tokens = get_definition(self)
-
-	print("DEFINE", inspect(inti_tokens))
-
-    for _, macro in ipairs(self.macros) do
-        if #macro.init == #inti_tokens then
-            local equal = true
-
-            for j = 1, #inti_tokens do
-                local a = inti_tokens[j]
-                local b = macro.init[j]
-
-                if a.kind ~= b.kind then
-                    equal = false
-                    break
-                end
-
-                if a.kind == KINDS.TOKEN then
-                    if a.token.token ~= b.token.token or a.token.buf ~= b.token.buf then
-                        equal = false
-                        break
-                    end
-                else -- INDEX
-                    if a.index ~= b.index then
-                        equal = false
-                        break
-                    end
-                end
-            end
-
-            if equal then
-                local m_name = {}
-                for _, v in ipairs(macro.init) do
-                    m_name[#m_name + 1] = v.token.buf
-                end
-                self:error(string.format("Macro '%s' is already defined", table.concat(m_name)))
-                return
-            end
-        end
-    end
-
-    local expr_tokens = {}
-
-    if self:expect(PRE_TOKENS.NEW_LINE) then
-        goto _end_define
-    end
-
-    self:consume()
+	
+	local expr_tokens = {}
+	
+	if self:expect(PRE_TOKENS.NEW_LINE) then
+		goto _end_define
+	end
+	
+	self:consume()
 
     while self:peek() do
         expr_tokens[#expr_tokens + 1] = get_index(self)
@@ -200,40 +158,44 @@ function directives.define(self)
     -- print(inspect(expr_tokens))
     -- print("DEFINE")
 
-    ::_end_define::
+	::_end_define::
 
     self.macros[#self.macros + 1] = {
         init = inti_tokens,
         expr = expr_tokens,
-        name = tostring(#self.macros) .. " " .. math.random(1, 9999)
+		name = tostring(#self.macros) .. " " .. math.random(1, 9999)
     }
 
 end
 
 function directives.undef(self)
     local inti_tokens = get_definition(self)
+	
+	local expr_tokens = {}
 
-    local expr_tokens = {}
+	for i, macro in ipairs(self.macros) do
+		local equal = true
 
-    for i, macro in ipairs(self.macros) do
-        local equal = true
+		print("MACRO", macro.name)
 
-        for j, token in ipairs(macro.init) do
-            if not inti_tokens[j] then
-                equal = false
-            end
+		for j, token in ipairs(macro.init) do
+			if not inti_tokens[j] then
+				equal = false
+			end
 
-            if inti_tokens[j].token.token ~= token.token.token then
-                equal = false
-            end
-        end
+			print("MACRO", inti_tokens[j].token.token, token.token.token)
 
-        if equal then
-            print("REMOVE UNDEF", i)
-            table.remove(self.macros, i)
-            break
-        end
-    end
+			if inti_tokens[j].token.token ~= token.token.token then
+				equal = false
+			end
+		end
+
+		if equal then
+			print("REMOVE UNDEF", i)
+			table.remove(self.macros, i)
+			break
+		end
+	end
 
     self.macros[#self.macros + 1] = {
         init = inti_tokens,
@@ -243,37 +205,21 @@ function directives.undef(self)
 end
 
 function directives.ifdef(self)
-    print("IFDEF")
-
+	print("IFDEF")
+	
     local inti_tokens = get_ifdefinition(self)
 
-    print(inspect(inti_tokens))
+	print(inspect(inti_tokens))
 
-    error()
+	error()
 end
 
 function directives.endif(self)
     local inti_tokens = {}
 end
 
-function _M.new(tokens, ARGUMENTS, file_path)
+function _M.new(tokens)
     local self = setmetatable({}, processor)
-
-    self.ARGUMENTS = ARGUMENTS
-
-	self.max_expansion = 2^4
-
-	self.expansion = 0
-
-	local max = self.ARGUMENTS:GET_FLAG("-Mexp")
-	if type(max) == "string" then
-		self.max_expansion = tonumber(max)
-		if not self.max_expansion or math.type(self.max_expansion) == "float" then
-			self:ERROR("-Mexp can only be a integer number")
-		end
-	end
-
-    self.file_path = file_path
 
     self.tokens = tokens
 
@@ -289,8 +235,6 @@ function _M.new(tokens, ARGUMENTS, file_path)
 
     self.result = {}
 
-	self.expanding = {}
-
     return self
 end
 
@@ -302,69 +246,38 @@ end
 
 function processor:try_match_macro(macro)
     local p = self.pos
-    local args = {}
+    local indexes = {}
 
-    for _, part in ipairs(macro.init) do
-        if part.kind == KINDS.TOKEN then
+    for _, roken in ipairs(macro.init) do
+        if roken.kind == KINDS.TOKEN then
             local t = self:peek_at(p)
-            if not t then
+            if not t or t.token ~= roken.token.token or t.buf ~= roken.token.buf then
                 return nil
             end
-
-            if t.token ~= part.token.token or t.buf ~= part.token.buf then
-                return nil
-            end
-
             p = p + 1
 
-        elseif part.kind == KINDS.INDEX then
+        elseif roken.kind == KINDS.INDEX then
             local expr, newp = capture_expr_at(self, p)
-            if not expr or #expr == 0 then
-                return nil
-            end
-
-            args[part.index] = expr
+            indexes[roken.index] = expr
             p = newp
         end
     end
 
     return {
         end_pos = p,
-        args = args
+        args = indexes
     }
 end
 
-
 function processor:apply_macro(macro, match)
-    if self.expanding[macro] then
-        self:error(string.format(
-            "Recursive macro expansion detected: '%s'",
-            macro.name or "<anonymous>"
-        ))
-        return
-    end
-
-	if self.expansion > self.max_expansion then
-        self:error(string.format(
-            "Max macro expansion: '%s'",
-            macro.name or "<anonymous>"
-        ))
-        return
-    end
-
-    self.expanding[macro] = true
-
     self.pos = match.end_pos
 
     local expansion = {}
 
     for _, part in ipairs(macro.expr) do
         if part.kind == KINDS.INDEX then
-            local arg = match.args[part.index]
-            if arg then
-                for _, tok in ipairs(arg) do
-                    expansion[#expansion + 1] = tok
-                end
+            for _, tok in ipairs(match.args[part.index]) do
+                expansion[#expansion + 1] = tok
             end
         else
             expansion[#expansion + 1] = part.token
@@ -400,7 +313,7 @@ function processor:replace(otokens, ntokens)
     end
 end
 
-function processor:error(msg, raise)
+function processor:error(msg)
     local line = self.line
     local column = self.column
 
@@ -443,214 +356,41 @@ function processor:error(msg, raise)
         end)
     end
 
-    local message = {}
-
-    message[#message + 1] = string.format(string.format("PREPROCESSOR line %s column %s\n", line, column))
-    message[#message + 1] = msg
-    message[#message + 1] = "\n\n"
+    io.stderr:write(msg)
+    io.stderr:write(string.format("\nError in PREPROCESSOR line %s column %s", line, column))
+    io.stderr:write("\n\n")
 
     for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
+        io.stderr:write(token.token.buf)
         if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
+            io.stderr:write(" ")
         end
     end
-    message[#message + 1] = ("\n")
+    io.stderr:write("\n")
 
     color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
+    color8.fcolor(0, 128, 128)
     for i, token in ipairs(tokens) do
         if #token.token.buf > 0 then
             for j = 1, #token.token.buf do
                 if token.index == 0 then
-                    message[#message + 1] = color8.sfcolor(255, 0, 0)
-                    message[#message + 1] = ("^")
+                    color8.fcolor(255, 0, 0)
+                    io.stderr:write("^")
                 else
-                    message[#message + 1] = color8.sfcolor(0, 128, 128)
-                    message[#message + 1] = ("-")
+                    color8.fcolor(0, 128, 128)
+                    io.stderr:write("-")
                 end
             end
-            message[#message + 1] = color8.sfcolor(0, 128, 128)
+            color8.fcolor(0, 128, 128)
             if i ~= #tokens then
-                message[#message + 1] = ("-")
-            end
-        end
-    end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
-    message[#message + 1] = ("\n")
-
-    message = table.concat(message)
-
-    self.ARGUMENTS:ERROR(message)
-end
-
-function processor:warn(msg, raise)
-    local line = self.line
-    local column = self.column
-
-    local left_off = 10
-    local right_off = 10
-
-    local tokens = {}
-    do -- local variables
-        local i = 0
-        while i < left_off do
-            local left = self.tokens[-i + self.last_token_index]
-            if left then
-                if left.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = -i,
-                    token = left
-                })
-            end
-            i = i + 1
-        end
-        i = 1
-        while i < right_off do
-            local right = self.tokens[i + self.last_token_index]
-            if right then
-                if right.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = i,
-                    token = right
-                })
-            end
-            i = i + 1
-        end
-
-        table.sort(tokens, function(a, b)
-            return a.index < b.index
-        end)
-    end
-
-    local message = {}
-
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n")
-
-    for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
-        if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
-        end
-    end
-    message[#message + 1] = ("\n")
-
-    color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
-    for i, token in ipairs(tokens) do
-        if #token.token.buf > 0 then
-            for j = 1, #token.token.buf do
-                if token.index == 0 then
-                    message[#message + 1] = color8.sfcolor(255, 190, 0)
-                    message[#message + 1] = ("^")
-                else
-                    message[#message + 1] = color8.sfcolor(0, 128, 128)
-                    message[#message + 1] = ("-")
-                end
-            end
-            message[#message + 1] = color8.sfcolor(0, 128, 128)
-            if i ~= #tokens then
-                message[#message + 1] = ("-")
+                io.stderr:write("-")
             end
 
         end
     end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
-
-    message = table.concat(message)
-
-    self.ARGUMENTS:WARN(message)
-end
-
-function processor:notification(msg)
-    local line = self.line
-    local column = self.column
-
-    local left_off = 10
-    local right_off = 10
-
-    local tokens = {}
-    do -- local variables
-        local i = 0
-        while i < left_off do
-            local left = self.tokens[-i + self.last_token_index]
-            if left then
-                if left.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = -i,
-                    token = left
-                })
-            end
-            i = i + 1
-        end
-        i = 1
-        while i < right_off do
-            local right = self.tokens[i + self.last_token_index]
-            if right then
-                if right.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = i,
-                    token = right
-                })
-            end
-            i = i + 1
-        end
-
-        table.sort(tokens, function(a, b)
-            return a.index < b.index
-        end)
-    end
-
-    local message = {}
-
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n\n")
-
-    for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
-        if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
-        end
-    end
-    message[#message + 1] = ("\n")
-
-    color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
-    for i, token in ipairs(tokens) do
-        if #token.token.buf > 0 then
-            for j = 1, #token.token.buf do
-                if token.index == 0 then
-                    message[#message + 1] = color8.sfcolor(90, 90, 90)
-                    message[#message + 1] = ("^")
-                else
-                    message[#message + 1] = color8.sfcolor(0, 128, 128)
-                    message[#message + 1] = ("-")
-                end
-            end
-            message[#message + 1] = color8.sfcolor(0, 128, 128)
-            if i ~= #tokens then
-                message[#message + 1] = ("-")
-            end
-
-        end
-    end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
-    message[#message + 1] = ("\n")
-
-    local message = table.concat(message)
-
-    self.ARGUMENTS:INFO(message)
+    color8.fcolor(200, 200, 200)
+    io.stderr:write("\n")
+    os.exit(1)
 end
 
 function processor:CEexpect(pretoken, length)
@@ -691,7 +431,7 @@ function processor:consume()
     local t = self.tokens[self.pos]
     self.pos = self.pos + 1
     self.last_token_index = self.pos
-    -- self.stack[#self.stack + 1] = t
+	--self.stack[#self.stack + 1] = t
     return t
 end
 
@@ -710,15 +450,15 @@ function processor:peek_at(pos)
 end
 
 function processor:push_back(content)
-    if content.token == PRE_TOKENS.LINE_COMMENT then
-        return
-    end
-    if content.token == PRE_TOKENS.NEW_LINE then
-        local t = self.result[#self.result]
-        if t and t.token == PRE_TOKENS.NEW_LINE then
-            return
-        end
-    end
+	if content.token == PRE_TOKENS.LINE_COMMENT then
+		return
+	end
+	if content.token == PRE_TOKENS.NEW_LINE then
+		local t = self.result[#self.result]
+		if t and t.token == PRE_TOKENS.NEW_LINE then 
+			return
+		end
+	end
     self.result[#self.result + 1] = content
 end
 
@@ -773,7 +513,7 @@ function processor:start()
             local expanded = false
             for _, macro in ipairs(self.macros) do
                 local m = self:try_match_macro(macro)
-                if m then
+            	if m then
                     self:apply_macro(macro, m)
                     expanded = true
                     break
@@ -788,5 +528,6 @@ function processor:start()
 
     return self.result
 end
+
 
 return _M

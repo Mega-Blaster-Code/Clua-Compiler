@@ -26,15 +26,6 @@ local __types = {
     [PRE_TOKENS.NAME] = true -- structs
 }
 
-local __builtin_types = {
-    [PRE_TOKENS.INT] = true,
-    [PRE_TOKENS.FLOAT] = true,
-    [PRE_TOKENS.CHAR] = true,
-    [PRE_TOKENS.DOUBLE] = true,
-    [PRE_TOKENS.BOOL] = true,
-    [PRE_TOKENS.VOID] = true,
-}
-
 local __modifiers = {
     [PRE_TOKENS.CONST] = true,
     [PRE_TOKENS.VOLATILE] = true,
@@ -125,10 +116,9 @@ end
 local parser = {}
 parser.__index = parser
 
-function _M.new(file_path, ARGUMENTS, tokens)
+function _M.new(file_path, tokens)
     local self = setmetatable({}, parser)
     self.file_path = file_path
-	self.ARGUMENTS = ARGUMENTS
 
 	self.replacements = {}
 
@@ -153,20 +143,18 @@ function _M.new(file_path, ARGUMENTS, tokens)
     return self
 end
 
-function parser:validate_name(name)
-	local error = string.format("the name '%s' is a keyword and can't be used for names", name)
-	if name == "sizeof" then
-		self:error(error)
-	end
-	for k, v in pairs(KEYWORDS) do
-		if k == name then
-			self:error(error)
+function parser:get(length)
+	local t = self.tokens[self.pos + (length or 0)]
+	if t then
+		for i, tbl in ipairs(self.replacements) do
+			t.buf = t.buf:gsub(tbl.pattern, tbl.replace)
 		end
 	end
-	return name
+
+	return t
 end
 
-function parser:error(msg, raise)
+function parser:error(msg)
     local line = self.line
     local column = self.column
 
@@ -208,224 +196,49 @@ function parser:error(msg, raise)
             return a.index < b.index
         end)
     end
-
-	local message = {}
-
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n\n")
-
-    for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
-        if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
-        end
-    end
-    message[#message + 1] = ("\n")
-
-    color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
-    for i, token in ipairs(tokens) do
-        if #token.token.buf > 0 then
-            for j = 1, #token.token.buf do
-				if token.index == 0 then
-					message[#message + 1] = color8.sfcolor(255, 0, 0)
-                	message[#message + 1] = ("^")
-				else
-					message[#message + 1] = color8.sfcolor(0, 128, 128)
-					message[#message + 1] = ("-")
-				end
-			end
-			message[#message + 1] = color8.sfcolor(0, 128, 128)
-			if i ~= #tokens then
-				message[#message + 1] = ("-")
-			end
-
-        end
-    end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
-	message[#message + 1] = ("\n")
-
-	message = table.concat(message)
-
-	self.ARGUMENTS:ERROR(message)
-end
-
-function parser:warn(msg, raise)
-    local line = self.line
-    local column = self.column
-
-	local left_off = 10
-	local right_off = 10
-
-    local tokens = {}
-    do -- local variables
-        local i = 0
-        while i < left_off do
-            local left = self.tokens[-i + self.last_token_index]
-            if left then
-				if left.token == PRE_TOKENS.NEW_LINE then
-					break
-				end
-                table.insert(tokens, {
-                    index = -i,
-                    token = left
-                })
-            end
-            i = i + 1
-        end
-        i = 1
-        while i < right_off do
-            local right = self.tokens[i + self.last_token_index]
-            if right then
-				if right.token == PRE_TOKENS.NEW_LINE then
-					break
-				end
-                table.insert(tokens, {
-                    index = i,
-                    token = right
-                })
-            end
-            i = i + 1
-        end
-
-        table.sort(tokens, function(a, b)
-            return a.index < b.index
-        end)
-    end
-
-	local message = {}
-	
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n\n")
-
-    for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
-        if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
-        end
-    end
-    message[#message + 1] = ("\n")
-
-    color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
-    for i, token in ipairs(tokens) do
-        if #token.token.buf > 0 then
-            for j = 1, #token.token.buf do
-				if token.index == 0 then
-					message[#message + 1] = color8.sfcolor(255, 190, 0)
-                	message[#message + 1] = ("^")
-				else
-					message[#message + 1] = color8.sfcolor(0, 128, 128)
-					message[#message + 1] = ("-")
-				end
-			end
-			message[#message + 1] = color8.sfcolor(0, 128, 128)
-			if i ~= #tokens then
-				message[#message + 1] = ("-")
-			end
-
-        end
-    end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
-	message[#message + 1] = ("\n")
-
-	message = table.concat(message)
-
-	self.ARGUMENTS:WARN(message)
-end
-
-function parser:notification(msg)
-    local line = self.line
-    local column = self.column
-
-	local left_off = 10
-	local right_off = 10
-
-    local tokens = {}
-    do -- local variables
-        local i = 0
-        while i < left_off do
-            local left = self.tokens[-i + self.last_token_index]
-            if left then
-				if left.token == PRE_TOKENS.NEW_LINE then
-					break
-				end
-                table.insert(tokens, {
-                    index = -i,
-                    token = left
-                })
-            end
-            i = i + 1
-        end
-        i = 1
-        while i < right_off do
-            local right = self.tokens[i + self.last_token_index]
-            if right then
-				if right.token == PRE_TOKENS.NEW_LINE then
-					break
-				end
-                table.insert(tokens, {
-                    index = i,
-                    token = right
-                })
-            end
-            i = i + 1
-        end
-
-        table.sort(tokens, function(a, b)
-            return a.index < b.index
-        end)
-    end
-
-	local message = {}
 
 	
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n\n")
+    io.stderr:write(msg)
+    io.stderr:write(string.format("\nError in PARSER line %s column %s", line, column))
+    io.stderr:write("\n\n")
 
     for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
+        io.stderr:write(token.token.buf)
         if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
+            io.stderr:write(" ")
         end
     end
-    message[#message + 1] = ("\n")
+    io.stderr:write("\n")
 
     color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
+    color8.fcolor(0, 128, 128)
     for i, token in ipairs(tokens) do
         if #token.token.buf > 0 then
             for j = 1, #token.token.buf do
 				if token.index == 0 then
-					message[#message + 1] = color8.sfcolor(90, 90, 90)
-                	message[#message + 1] = ("^")
+					color8.fcolor(255, 0, 0)
+                	io.stderr:write("^")
 				else
-					message[#message + 1] = color8.sfcolor(0, 128, 128)
-					message[#message + 1] = ("-")
+					color8.fcolor(0, 128, 128)
+					io.stderr:write("-")
 				end
 			end
-			message[#message + 1] = color8.sfcolor(0, 128, 128)
+			color8.fcolor(0, 128, 128)
 			if i ~= #tokens then
-				message[#message + 1] = ("-")
+				io.stderr:write("-")
 			end
 
         end
     end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
-	message[#message + 1] = ("\n")
-
-	local message = table.concat(message)
-
-	self.ARGUMENTS:INFO(message)
+    color8.fcolor(200, 200, 200)
+	io.stderr:write("\n")
+    os.exit(1)
 end
 
 function parser:CEexpect(pretoken, length)
     local p = self:peek(length)
     if not p or p.token ~= pretoken then
-        self:error(string.format("expected ['%s'] but got ['%s']", pretoken, tostring((p or {}).token)))
+        self:error(string.format("Error expected ['%s'] but got ['%s']", pretoken, tostring((p or {}).token)))
     end
     return self:consume()
 end
@@ -433,7 +246,7 @@ end
 function parser:TCEexpect(tbl, length)
     local p = self:peek(length)
     if not p or not tbl[p.token] then
-        self:error(string.format("expected [custom table] but got ['%s']", tostring((p or {}).token)))
+        self:error(string.format("Error expected [custom table] but got ['%s']", tostring((p or {}).token)))
     end
     return self:consume()
 end
@@ -450,7 +263,7 @@ end
 
 function parser:Econsume()
     if not self:peek() then
-        self:error("Incomplete Consume")
+        self:error("Inconplete Consume")
     end
 
     return self:consume()
@@ -505,7 +318,7 @@ end
 function parser:Eexpect(pretoken, length)
     local p = self:peek(length)
     if not p or p.token ~= pretoken then
-        self:error(string.format("expected ['%s'] but got ['%s']", pretoken, tostring((p or {}).token)))
+        self:error(string.format("Error expected ['%s'] but got ['%s']", pretoken, tostring((p or {}).token)))
     end
     return true
 end
@@ -600,7 +413,7 @@ function parser:parse_primary(is_pointer)
 
         local node = {
             kind = KINDS.VAR_REF,
-            name = self:validate_name(tok.buf)
+            name = tok.buf
         }
 
         self:consume()
@@ -628,7 +441,7 @@ function parser:parse_postfix()
 
         elseif self:expect(PRE_TOKENS.DOT) then
             self:consume()
-            local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
+            local name = self:CEexpect(PRE_TOKENS.NAME).buf
 			
             local_base.node = {
                 kind = KINDS.FIELD_ACCESS,
@@ -637,7 +450,7 @@ function parser:parse_postfix()
 
         elseif self:expect(PRE_TOKENS.POINTER) then
             self:consume()
-            local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
+            local name = self:CEexpect(PRE_TOKENS.NAME).buf
             local_base.node = {
                 kind = KINDS.POINTER_FIELD_ACCESS,
                 name = name
@@ -794,34 +607,6 @@ function parser:parse_call()
 
     local args = {}
 
-	if name == "sizeof" then
-		if self:Texpect(__builtin_types) then
-			local t = {
-				kind = KINDS.SIZEOF,
-				value = {
-					kind = KINDS.RAW_TYPE,
-					value = self:consume().buf
-				}
-			}
-			self:CEexpect(PRE_TOKENS.CLOSE_PARENTHESES)
-			return t
-		end
-
-		self:Eexpect(PRE_TOKENS.NAME)
-
-		local t = {
-			kind = KINDS.SIZEOF,
-			value = {
-				kind = KINDS.VAR_REF,
-				value = self:validate_name(self:consume().buf)
-			}
-		}
-		self:CEexpect(PRE_TOKENS.CLOSE_PARENTHESES)
-		return t
-	end
-
-	name = self:validate_name(name)
-
     if not self:expect(PRE_TOKENS.CLOSE_PARENTHESES) then
         while true do
             table.insert(args, self:parse_expression())
@@ -895,7 +680,7 @@ function parser:parse_struct_init()
 
     while self:expect(PRE_TOKENS.DOT) do
         self:consume() -- '.'
-        local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
+        local name = self:CEexpect(PRE_TOKENS.NAME).buf
         self:CEexpect(PRE_TOKENS.EQUAL_ASSIGNING)
         local value
         if self:expect(PRE_TOKENS.OPEN_BRACES) then
@@ -1024,11 +809,11 @@ function parser:parse_variable_types()
 
     if self:expect(PRE_TOKENS.FUNCTION) then
         self:consume()
-        local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
+        local name = self:CEexpect(PRE_TOKENS.NAME).buf
         return self:parse_function_declaration(name, type, modifiers, qualifiers), true
     end
 
-    local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
+    local name = self:CEexpect(PRE_TOKENS.NAME).buf
 
     -- declaração sem valor
     if not self:expect(PRE_TOKENS.EQUAL_ASSIGNING) then
@@ -1125,7 +910,7 @@ end
 function parser:parse_struct()
     self:consume() -- "struct"
 
-    local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
+    local name = self:CEexpect(PRE_TOKENS.NAME).buf
 
     self:CEexpect(PRE_TOKENS.OPEN_BRACES)
 
@@ -1157,38 +942,6 @@ function parser:parse_struct()
 
     return {
         kind = KINDS.STRUCT_DECLARATION,
-        variables = variables,
-        name = name
-    }
-end
-
-function parser:parse_enum()
-    self:consume() -- "enum"
-
-    local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
-
-    self:CEexpect(PRE_TOKENS.OPEN_BRACES)
-
-    if self:expect(PRE_TOKENS.CLOSE_BRACES) then
-        self:error("Enums can't be empty")
-    end
-
-    local variables = {}
-
-    while not self:expect(PRE_TOKENS.CLOSE_BRACES) do
-
-		local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
-
-        variables[#variables + 1] = name
-        self:CEexpect(PRE_TOKENS.COMMA)
-    end
-
-    --print(inspect(variables))
-
-    self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
-
-    return {
-        kind = KINDS.ENUM_DECLARATION,
         variables = variables,
         name = name
     }
@@ -1270,38 +1023,20 @@ function parser:parse_statement()
         return
     end
 
-	if self:expect(PRE_TOKENS.BREAK) then
-		self:consume()
-		self:push_back({
-			kind = KINDS.BREAK,
-		})
-		return
-	end
-
     if self:expect(PRE_TOKENS.END) then -- end 'end'
         self:end_scope()
         self:consume()
         return
     end
 
-	self:warn("terst")
-
-    if self:expect(PRE_TOKENS.RETURN) then -- return 'return expression'
+    if self:expect(PRE_TOKENS.RETURN) then -- end 'end'
         self:push_back(self:parse_return())
         self:consume()
         return
     end
 
-    if self:expect(PRE_TOKENS.STRUCT) then -- struct 'struct name{type name; type name1;};'
+    if self:expect(PRE_TOKENS.STRUCT) then -- end 'end'
         self:push_back(self:parse_struct())
-        if self.use_semicolan then
-            self:CEexpect(PRE_TOKENS.SEMICOLON)
-        end -- ";"
-        return
-    end
-
-	if self:expect(PRE_TOKENS.ENUM) then -- enum 'enum name {name1, name2, name3};'
-        self:push_back(self:parse_enum())
         if self.use_semicolan then
             self:CEexpect(PRE_TOKENS.SEMICOLON)
         end -- ";"
@@ -1333,8 +1068,7 @@ function parser:start(use_semicolan)
         self:error("Scope was not closed")
     end
 
-    --print(inspect(self.buffer))
-	return self.buffer
+    print(inspect(self.buffer))
 end
 
 return _M
