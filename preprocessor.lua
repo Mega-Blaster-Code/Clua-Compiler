@@ -140,7 +140,7 @@ function directives.define(self)
 
     local inti_tokens = get_definition(self)
 
-	print("DEFINE", inspect(inti_tokens))
+    -- print("DEFINE", inspect(inti_tokens))
 
     for _, macro in ipairs(self.macros) do
         if #macro.init == #inti_tokens then
@@ -229,7 +229,6 @@ function directives.undef(self)
         end
 
         if equal then
-            print("REMOVE UNDEF", i)
             table.remove(self.macros, i)
             break
         end
@@ -249,7 +248,7 @@ function directives.ifdef(self)
 
     print(inspect(inti_tokens))
 
-    error()
+    --error()
 end
 
 function directives.endif(self)
@@ -261,19 +260,15 @@ function _M.new(tokens, ARGUMENTS, file_path)
 
     self.ARGUMENTS = ARGUMENTS
 
-	self.max_expansion = 2^4
+    self.max_expansion = 2 ^ 3
 
-	self.expansion = 0
+	self.max_recursion_genereation = 2 ^ 3
 
-	local max = self.ARGUMENTS:GET_FLAG("-Mexp")
-	if type(max) == "string" then
-		self.max_expansion = tonumber(max)
-		if not self.max_expansion or math.type(self.max_expansion) == "float" then
-			self:ERROR("-Mexp can only be a integer number")
-		end
-	end
+    self.expansion = 0
 
     self.file_path = file_path
+
+	self.if_stack = 0
 
     self.tokens = tokens
 
@@ -289,7 +284,23 @@ function _M.new(tokens, ARGUMENTS, file_path)
 
     self.result = {}
 
-	self.expanding = {}
+    self.expanding = {}
+
+	local max = self.ARGUMENTS:GET_FLAG("-Mexp")
+    if type(max) == "string" then
+        self.max_expansion = tonumber(max)
+        if not self.max_expansion or math.type(self.max_expansion) == "float" or self.max_expansion <= 0 then
+            self.ARGUMENTS:ERROR("-Mexp can only be a positive integer number")
+        end
+    end
+
+	local max = self.ARGUMENTS:GET_FLAG("-MRG")
+    if type(max) == "string" then
+        self.max_recursion_genereation = tonumber(max)
+        if not self.max_recursion_genereation or math.type(self.max_recursion_genereation) == "float" or self.max_recursion_genereation <= 0 then
+            self.ARGUMENTS:ERROR("-MRG can only be a positive integer number")
+        end
+    end
 
     return self
 end
@@ -334,25 +345,24 @@ function processor:try_match_macro(macro)
     }
 end
 
-
 function processor:apply_macro(macro, match)
-    if self.expanding[macro] then
+	--print(inspect(self.expanding[macro]))
+    if (self.expanding[macro] or 0) > self.max_recursion_genereation then
         self:error(string.format(
-            "Recursive macro expansion detected: '%s'",
+            "Recursive macro (%d) expansion detected: '%s'", self.max_recursion_genereation,
             macro.name or "<anonymous>"
         ))
         return
     end
 
-	if self.expansion > self.max_expansion then
+    if self.expansion > self.max_expansion then
         self:error(string.format(
-            "Max macro expansion: '%s'",
+            "Max (%d) macro expansion reached: '%s'",
+            self.max_expansion,
             macro.name or "<anonymous>"
         ))
         return
     end
-
-    self.expanding[macro] = true
 
     self.pos = match.end_pos
 
@@ -363,16 +373,24 @@ function processor:apply_macro(macro, match)
             local arg = match.args[part.index]
             if arg then
                 for _, tok in ipairs(arg) do
-                    expansion[#expansion + 1] = tok
+                    local t = tok
+                    t.__from_macro = macro
+                    expansion[#expansion + 1] = t
                 end
             end
         else
-            expansion[#expansion + 1] = part.token
+            local t = part.token
+            t.__from_macro = macro
+            expansion[#expansion + 1] = t
         end
     end
 
+    self.expanding[macro] = (self.expanding[macro] or 0) + #expansion
+    self.expansion = self.expansion + 1
+
     self:inject(expansion)
 end
+
 
 function processor:match()
     for _, macro in ipairs(self.macros) do
@@ -383,7 +401,6 @@ function processor:match()
         end
     end
 
-    -- nenhum macro casou → consome 1 token normal
     self:push_back(self:consume())
 end
 
@@ -408,7 +425,7 @@ function processor:error(msg, raise)
     local right_off = 10
 
     local tokens = {}
-    do -- local variables
+    do
         local i = 0
         while i < left_off do
             local left = self.tokens[-i + self.last_token_index]
@@ -482,6 +499,7 @@ function processor:error(msg, raise)
     message = table.concat(message)
 
     self.ARGUMENTS:ERROR(message)
+	os.exit(1)
 end
 
 function processor:warn(msg, raise)
@@ -568,7 +586,7 @@ function processor:warn(msg, raise)
     self.ARGUMENTS:WARN(message)
 end
 
-function processor:notification(msg)
+function processor:info(msg)
     local line = self.line
     local column = self.column
 
@@ -691,7 +709,15 @@ function processor:consume()
     local t = self.tokens[self.pos]
     self.pos = self.pos + 1
     self.last_token_index = self.pos
-    -- self.stack[#self.stack + 1] = t
+
+    if t and t.__from_macro then
+        local m = t.__from_macro
+        self.expanding[m] = (self.expanding[m] or 1) - 1
+        if self.expanding[m] <= 0 then
+            self.expanding[m] = nil
+        end
+    end
+
     return t
 end
 

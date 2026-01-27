@@ -1284,8 +1284,6 @@ function parser:parse_statement()
         return
     end
 
-	self:warn("terst")
-
     if self:expect(PRE_TOKENS.RETURN) then -- return 'return expression'
         self:push_back(self:parse_return())
         self:consume()

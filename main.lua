@@ -23,7 +23,11 @@ else
 	ARGUMENTS:ERROR("No input file. " .. color8.sfcolor(50, 50, 50) .. "(use '-f' to define a input file)" .. color8.sfcolor(200, 200, 200))
 end
 
-local code_handler = file2io.open(file_path, file2io.modes.read_binary)
+local code_handler, err = file2io.open(file_path, file2io.modes.read_binary)
+if not code_handler then
+	ARGUMENTS:ERROR(err)
+end
+
 local content = code_handler:read()
 code_handler:close()
 
