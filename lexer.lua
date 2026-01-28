@@ -26,9 +26,12 @@ do
     }, {
         pattern = "^'.'$",
         token = PRE_TOKENS.CHAR_LITERAL
-    },{
+    }, {
         pattern = "^#$",
         token = PRE_TOKENS.HASH_TAG
+    }, {
+        pattern = "^#.*$",
+        token = PRE_TOKENS.PREPROCESSOR_TOKEN
     }, {
         pattern = "^typedef$",
         token = PRE_TOKENS.TYPEDEF
@@ -123,6 +126,12 @@ do
 end
 
 function _M.tokenize(file_path, str)
+
+	str = str:gsub("\r\n", "\n")
+	
+    local __RAW_MODE = false
+    local __RAW_C = {}
+
     local char_pos = 1
 
     local line = 1
@@ -160,6 +169,9 @@ function _M.tokenize(file_path, str)
     local buf = ""
 
     local function new_token(buffer, token)
+		if __RAW_MODE then
+			return
+		end
         table.insert(tokens, {
             buf = buffer,
             token = token,
@@ -176,6 +188,9 @@ function _M.tokenize(file_path, str)
     end
 
     local function push_back(char)
+		if __RAW_MODE then
+			__RAW_C[#__RAW_C + 1] = char
+		end
         buf = buf .. char
     end
 
@@ -185,20 +200,25 @@ function _M.tokenize(file_path, str)
     local function match_patterns()
         if peek() and peek():match("[ ]") then
             while peek() and peek():match("[ ]") do
-                consume()
+				if __RAW_MODE then
+                	push_back(consume())
+					return true
+				else
+					consume()
+				end
             end
             return true
         end
 
         if peek() and peek() == "\n" then
-            push_back(consume())
-            --buf = ""
+				push_back(consume())
+            -- buf = ""
             return true
         end
 
-		if peek() and peek() == "\t" then
-            push_back(consume())
-            --buf = ""
+        if peek() and peek() == "\t" then
+				push_back(consume())
+            -- buf = ""
             return true
         end
 
@@ -271,11 +291,76 @@ function _M.tokenize(file_path, str)
             end
         end
 
+        if peek() == "e" then
+            local exstr = "extern"
+            local enstr = "exend"
+            if not __RAW_MODE then
+                local equal = true
+                for i = 1, #exstr do
+                    local char = exstr:sub(i, i)
+                    local t_char = peek(i - 1)
+					
+                    if char ~= t_char then
+                        equal = false
+                        break
+                    end
+                end
+
+                if equal then
+                    for i = 1, #exstr, 1 do
+                        push_back(consume())
+                    end
+                    new_token(buf, PRE_TOKENS.EXTERN)
+                    __RAW_MODE = true
+                    return true
+                end
+            else
+				
+                local equal = true
+                for i = 1, #enstr do
+                    local char = enstr:sub(i, i)
+                    local t_char = peek(i - 1)
+                    if char ~= t_char then
+                        equal = false
+                        break
+                    end
+                end
+
+                if equal then
+					__RAW_MODE = false
+
+					new_token(table.concat(__RAW_C), PRE_TOKENS.RAW_C)
+
+                    for i = 1, #exstr, 1 do
+                        consume()
+                    end
+
+					--new_token(buf, PRE_TOKENS.EXEND)
+
+					return true
+                end
+            end
+        end
+
         if peek():match("[%a_]") then
             push_back(consume())
             while peek() and peek():match("[%w_]") do
                 push_back(consume())
+				--print("[%a_]", inspect(buf), peek())
             end
+            return false
+        end
+
+        if peek():match("#") and peek(1) and peek(1):match("[%a]") then
+            push_back(consume())
+            while peek() and peek():match("[%a]") do
+                push_back(consume())
+            end
+            return false
+        end
+
+        if peek():match("#") then
+            push_back(consume())
             return false
         end
 
@@ -330,11 +415,11 @@ function _M.tokenize(file_path, str)
             return false
         end
 
-        if peek() and peek():match("[%(%{%[%)%}%];,%.:&#]") then
+        if peek() and peek():match("[%(%{%[%)%}%];,%.:&]") then
             push_back(consume())
-			if peek() and peek():match(":") then
-				push_back(consume())
-			end
+            if peek() and peek():match(":") then
+                push_back(consume())
+            end
             return false
         end
 

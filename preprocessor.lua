@@ -5,6 +5,8 @@ local inspect = require("inspect")
 local file2io = require("file2io")
 local color8 = require("color8")
 
+local lexer = require("lexer")
+
 local processor = {}
 processor.__index = processor
 
@@ -124,6 +126,17 @@ local function get_definition(self)
     return inti_tokens
 end
 
+local function undef_macro(self, name)
+    local inti_tokens = get_definition(self)
+
+    local expr_tokens = {}
+
+    local macro, i = self:search_macro(inti_tokens)
+
+    table.remove(self.macros, i)
+
+end
+
 local function get_ifdefinition(self)
     local inti_tokens = {}
     while self:peek() do
@@ -135,48 +148,33 @@ local function get_ifdefinition(self)
     return inti_tokens
 end
 
+local function is_active(self)
+	for i = #self.if_stack, 1, -1 do
+		local stack = self.if_stack[i]
+		if not stack.active then
+			return false
+		end
+	end
+	return true
+end
+
 function directives.define(self)
-    ---- print(inspect(self.tokens))
 
     local inti_tokens = get_definition(self)
 
-    -- print("DEFINE", inspect(inti_tokens))
-
-    for _, macro in ipairs(self.macros) do
-        if #macro.init == #inti_tokens then
-            local equal = true
-
-            for j = 1, #inti_tokens do
-                local a = inti_tokens[j]
-                local b = macro.init[j]
-
-                if a.kind ~= b.kind then
-                    equal = false
-                    break
-                end
-
-                if a.kind == KINDS.TOKEN then
-                    if a.token.token ~= b.token.token or a.token.buf ~= b.token.buf then
-                        equal = false
-                        break
-                    end
-                else -- INDEX
-                    if a.index ~= b.index then
-                        equal = false
-                        break
-                    end
-                end
-            end
-
-            if equal then
-                local m_name = {}
-                for _, v in ipairs(macro.init) do
-                    m_name[#m_name + 1] = v.token.buf
-                end
-                self:error(string.format("Macro '%s' is already defined", table.concat(m_name)))
-                return
+    local macro, i = self:search_macro(inti_tokens)
+    if macro then
+        local m_name = {}
+        for _, v in ipairs(macro.init) do
+            if v.kind == KINDS.TOKEN then
+                m_name[#m_name + 1] = v.token.buf
+            else
+                m_name[#m_name + 1] = "#" .. v.index
             end
         end
+
+        self:warn(string.format("Macro '%s' is already defined", table.concat(m_name, " ")))
+        undef_macro(self, macro.name)
     end
 
     local expr_tokens = {}
@@ -196,9 +194,9 @@ function directives.define(self)
     end
 
     -- print(inspect(inti_tokens))
-    -- print("EQUAL")
+    -- --print("EQUAL")
     -- print(inspect(expr_tokens))
-    -- print("DEFINE")
+    -- --print("DEFINE")
 
     ::_end_define::
 
@@ -215,44 +213,121 @@ function directives.undef(self)
 
     local expr_tokens = {}
 
-    for i, macro in ipairs(self.macros) do
-        local equal = true
+    local macro, i = self:search_macro(inti_tokens)
 
-        for j, token in ipairs(macro.init) do
-            if not inti_tokens[j] then
-                equal = false
-            end
+    table.remove(self.macros, i)
 
-            if inti_tokens[j].token.token ~= token.token.token then
-                equal = false
-            end
-        end
-
-        if equal then
-            table.remove(self.macros, i)
-            break
-        end
-    end
-
-    self.macros[#self.macros + 1] = {
-        init = inti_tokens,
-        expr = expr_tokens
-    }
+    -- self.macros[#self.macros + 1] = {
+    --    init = inti_tokens,
+    --    expr = expr_tokens
+    -- }
 
 end
 
 function directives.ifdef(self)
-    print("IFDEF")
+    --print("IFDEF")
 
     local inti_tokens = get_ifdefinition(self)
 
-    print(inspect(inti_tokens))
+    --print(inspect(inti_tokens))
 
-    --error()
+    local result, i = self:search_macro(inti_tokens)
+
+	self.if_stack[#self.if_stack + 1] = {
+		active = result ~= nil,
+		branch_taken = false,
+		elif_branch_taken = result ~= nil,
+	}
+end
+
+function directives.elif(self)
+    --print("ELIF")
+
+    local inti_tokens = get_ifdefinition(self)
+
+    local result, i = self:search_macro(inti_tokens)
+
+	local top = self.if_stack[#self.if_stack]
+
+	if top.branch_taken then
+		self:error("Can't have two '#elif' after a else")
+	end
+
+	local something = top.elif_branch_taken
+
+	self.if_stack[#self.if_stack] = {
+		active = result ~= nil and not something,
+		branch_taken = false,
+		elif_branch_taken = something or result ~= nil
+	}
+end
+
+function directives.ifndef(self)
+    --print("IFNDEF")
+
+    local inti_tokens = get_ifdefinition(self)
+
+    --print(inspect(inti_tokens))
+
+    local result, i = self:search_macro(inti_tokens)
+
+	self.if_stack[#self.if_stack + 1] = {
+		active = result == nil,
+		branch_taken = false,
+	}
+end
+
+directives["else"] = function (self)
+    --print("ELSE")
+
+	local top = self.if_stack[#self.if_stack]
+
+	if top.branch_taken then
+		self:error("Can't have two '#else' for the same if")
+	end
+
+	self.if_stack[#self.if_stack] = {
+		active = not top.active and not top.elif_branch_taken,
+		branch_taken = true
+	}
 end
 
 function directives.endif(self)
-    local inti_tokens = {}
+	--print("ENDIF")
+
+	if #self.if_stack == 0 then
+		self:error("can't use #endif in global scope")
+	end
+
+	self.if_stack[#self.if_stack] = nil
+end
+
+function directives.require(self)
+	local name = self:consume()
+	local file, err
+	if name.token == PRE_TOKENS.STRING_LITERAL then
+		file, err = file2io.open("./" .. name.buf, file2io.modes.read_binary)
+	elseif name.token == PRE_TOKENS.LOWER then
+		name = ""
+		while self:peek() and self:peek().token ~= PRE_TOKENS.GREATER do
+			local n = self:consume()
+			name = name .. n.buf
+		end
+		self:consume()
+
+		file, err = file2io.open("./" .. name, file2io.modes.read_binary)
+	end
+	if err then
+		self:error(err)
+	end
+
+	local content = file:read()
+	file:close()
+
+	local tokens = lexer.tokenize(name, content)
+
+	--print(inspect(tokens))
+	self:inject(tokens)
 end
 
 function _M.new(tokens, ARGUMENTS, file_path)
@@ -262,13 +337,13 @@ function _M.new(tokens, ARGUMENTS, file_path)
 
     self.max_expansion = 2 ^ 3
 
-	self.max_recursion_genereation = 2 ^ 3
+    self.max_recursion_genereation = 2 ^ 3
 
     self.expansion = 0
 
     self.file_path = file_path
 
-	self.if_stack = 0
+    self.if_stack = {}
 
     self.tokens = tokens
 
@@ -286,7 +361,7 @@ function _M.new(tokens, ARGUMENTS, file_path)
 
     self.expanding = {}
 
-	local max = self.ARGUMENTS:GET_FLAG("-Mexp")
+    local max = self.ARGUMENTS:GET_FLAG("-Mexp")
     if type(max) == "string" then
         self.max_expansion = tonumber(max)
         if not self.max_expansion or math.type(self.max_expansion) == "float" or self.max_expansion <= 0 then
@@ -294,10 +369,11 @@ function _M.new(tokens, ARGUMENTS, file_path)
         end
     end
 
-	local max = self.ARGUMENTS:GET_FLAG("-MRG")
+    local max = self.ARGUMENTS:GET_FLAG("-MRG")
     if type(max) == "string" then
         self.max_recursion_genereation = tonumber(max)
-        if not self.max_recursion_genereation or math.type(self.max_recursion_genereation) == "float" or self.max_recursion_genereation <= 0 then
+        if not self.max_recursion_genereation or math.type(self.max_recursion_genereation) == "float" or
+            self.max_recursion_genereation <= 0 then
             self.ARGUMENTS:ERROR("-MRG can only be a positive integer number")
         end
     end
@@ -307,7 +383,47 @@ end
 
 function processor:inject(tokens)
     for i = #tokens, 1, -1 do
+		tokens[i].__from_preprocessor = true
         table.insert(self.tokens, self.pos, tokens[i])
+    end
+end
+
+function processor:search_macro(tokens)
+    for i, macro in ipairs(self.macros) do
+        local equal = true
+        if #macro.init ~= #tokens then
+            goto continue
+        end
+
+        for j, token in ipairs(macro.init) do
+            if not tokens[j] then
+                equal = false
+                break
+            end
+
+            -- --print("J",inspect(tokens[j]), j, inspect(token))
+
+            if tokens[j].kind ~= token.kind then
+                equal = false
+                break
+            end
+            if token.kind == KINDS.INDEX then
+                if tokens[j].index ~= token.index then
+                    equal = false
+                    break
+                end
+            else
+                if tokens[j].token.buf ~= token.token.buf then
+                    equal = false
+                    break
+                end
+            end
+        end
+
+        if equal then
+            return macro, i
+        end
+        ::continue::
     end
 end
 
@@ -346,21 +462,16 @@ function processor:try_match_macro(macro)
 end
 
 function processor:apply_macro(macro, match)
-	--print(inspect(self.expanding[macro]))
+    -- print(inspect(self.expanding[macro]))
     if (self.expanding[macro] or 0) > self.max_recursion_genereation then
-        self:error(string.format(
-            "Recursive macro (%d) expansion detected: '%s'", self.max_recursion_genereation,
-            macro.name or "<anonymous>"
-        ))
+        self:error(string.format("Recursive macro (%d) expansion detected: '%s'", self.max_recursion_genereation,
+            macro.name or "<anonymous>"))
         return
     end
 
     if self.expansion > self.max_expansion then
-        self:error(string.format(
-            "Max (%d) macro expansion reached: '%s'",
-            self.max_expansion,
-            macro.name or "<anonymous>"
-        ))
+        self:error(string.format("Max (%d) macro expansion reached: '%s'", self.max_expansion,
+            macro.name or "<anonymous>"))
         return
     end
 
@@ -390,7 +501,6 @@ function processor:apply_macro(macro, match)
 
     self:inject(expansion)
 end
-
 
 function processor:match()
     for _, macro in ipairs(self.macros) do
@@ -499,7 +609,7 @@ function processor:error(msg, raise)
     message = table.concat(message)
 
     self.ARGUMENTS:ERROR(message)
-	os.exit(1)
+    os.exit(1)
 end
 
 function processor:warn(msg, raise)
@@ -745,7 +855,9 @@ function processor:push_back(content)
             return
         end
     end
-    self.result[#self.result + 1] = content
+	if is_active(self) then
+    	self.result[#self.result + 1] = content
+	end
 end
 
 function processor:Eexpect(pretoken, length)
@@ -791,9 +903,9 @@ end
 
 function processor:start()
     while self.pos <= #self.tokens do
-        if self:expect(PRE_TOKENS.HASH_TAG) then
-            self:consume()
-            local name = self:CEexpect(PRE_TOKENS.NAME).buf
+        if self:expect(PRE_TOKENS.PREPROCESSOR_TOKEN) then
+            local name = self:consume().buf:sub(2, -1)
+            --print("NAME", name)
             directives[name](self)
         else
             local expanded = false
@@ -811,6 +923,14 @@ function processor:start()
             end
         end
     end
+
+	if #self.if_stack > 0 then
+		self:error("(#ifdef, #ifndef) scope was not closed")
+	end
+
+	for k, token in ipairs(self.result) do -- clear trash from preprocessor
+		token.__from_macro = nil
+	end
 
     return self.result
 end

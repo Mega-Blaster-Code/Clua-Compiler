@@ -31,9 +31,18 @@ end
 local content = code_handler:read()
 code_handler:close()
 
-content = content:gsub("\r\n", "\n")
-
 local tokens = lexer.tokenize(file_path, content)
+
+if type(ARGUMENTS:GET_FLAG("-t")) == "string" then
+	file_path = ARGUMENTS:GET_FLAG("-t")
+	local fpp = require("fpp")
+	fpp(file_path, tokens)
+end
+
+if type(ARGUMENTS:GET_FLAG("-T")) == "boolean" then
+	os.exit(0)
+end
+
 local preprocessor_directive = preprocessor.new(tokens, ARGUMENTS, file_path)
 
 local _i = preprocessor_directive:start()
@@ -45,7 +54,6 @@ if type(ARGUMENTS:GET_FLAG("-pp")) == "string" then
 end
 
 if type(ARGUMENTS:GET_FLAG("-PP")) == "boolean" then
-	ARGUMENTS:clear_tmp()
 	os.exit(0)
 end
 
@@ -59,5 +67,3 @@ if type(ARGUMENTS:GET_FLAG("-ast")) == "string" then
 	file_h:write(inspect(AST_TREE))
 	file_h:close()
 end
-
-ARGUMENTS:clear_tmp()

@@ -211,11 +211,17 @@ function parser:error(msg, raise)
 
 	local message = {}
 
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
+    message[#message + 1] = (string.format("SINTAX ERROR ['%s'] line %s column %s\n", self.file_path, line, column))
     message[#message + 1] = (msg)
     message[#message + 1] = ("\n\n")
 
     for i, token in ipairs(tokens) do
+		if token.token.__from_preprocessor then
+			message[#message + 1] = color8.sfcolor(50, 200, 200)
+		else
+			message[#message + 1] = color8.sfcolor(200, 200, 200)
+		end
+
         message[#message + 1] = (token.token.buf:gsub("%c", " "))
         if #token.token.buf > 0 then
             message[#message + 1] = (" ")
@@ -301,6 +307,11 @@ function parser:warn(msg, raise)
     message[#message + 1] = ("\n\n")
 
     for i, token in ipairs(tokens) do
+		if token.token.__from_preprocessor then
+			message[#message + 1] = color8.sfcolor(50, 200, 0)
+		else
+			message[#message + 1] = color8.sfcolor(200, 200, 200)
+		end
         message[#message + 1] = (token.token.buf:gsub("%c", " "))
         if #token.token.buf > 0 then
             message[#message + 1] = (" ")
@@ -387,6 +398,11 @@ function parser:notification(msg)
     message[#message + 1] = ("\n\n")
 
     for i, token in ipairs(tokens) do
+		if token.token.__from_preprocessor then
+			message[#message + 1] = color8.sfcolor(50, 200, 0)
+		else
+			message[#message + 1] = color8.sfcolor(200, 200, 200)
+		end
         message[#message + 1] = (token.token.buf:gsub("%c", " "))
         if #token.token.buf > 0 then
             message[#message + 1] = (" ")
@@ -486,9 +502,20 @@ function parser:peek(length)
     return t
 end
 
+function parser:get_local_scope()
+	return self.scopes[#self.scopes]
+end
+
 function parser:push_back(content)
-    local local_scope = self.scopes[#self.scopes]
+    local local_scope = self:get_local_scope()
     local_scope[#local_scope + 1] = content
+end
+
+function parser:push_out()
+	local local_scope = self:get_local_scope()
+    local content = local_scope[#local_scope]
+	local_scope[#local_scope] = nil
+	return content
 end
 
 function parser:new_scope(body_pointer)
@@ -1070,7 +1097,28 @@ function parser:parse_if()
     return {
         kind = KINDS.IF,
         condition = contition,
-        body = {}
+        body = {},
+		["_else"] = nil,
+		["_elseif"] = nil
+    }
+end
+
+function parser:parse_elseif()
+    self:consume() -- "elseif"
+    self:CEexpect(PRE_TOKENS.OPEN_PARENTHESES) -- "("
+
+    local contition = self:parse_expression()
+
+    self:CEexpect(PRE_TOKENS.CLOSE_PARENTHESES) -- ")"
+
+    self:CEexpect(PRE_TOKENS.THEN) -- ")"
+
+    local body = {}
+
+    return {
+        kind = KINDS.ELSEIF,
+        condition = contition,
+        body = {},
     }
 end
 
@@ -1090,6 +1138,17 @@ function parser:parse_while()
         kind = KINDS.WHILE,
         condition = contition,
         body = {}
+    }
+end
+
+function parser:parse_extern()
+    self:consume() -- "extern"
+
+	local raw_c = self:CEexpect(PRE_TOKENS.RAW_C).buf
+
+    return {
+        kind = KINDS.EXTERN,
+        raw = raw_c,
     }
 end
 
@@ -1256,10 +1315,48 @@ function parser:parse_statement()
         return
     end
 
+	if self:expect(PRE_TOKENS.EXTERN) then -- extern 'extern ... exend'
+        local _extern = self:parse_extern()
+        self:push_back(_extern)
+        return
+    end
+
     if self:expect(PRE_TOKENS.IF) then -- if 'if (condition) then ... end'
         local _if = self:parse_if()
         self:push_back(_if)
         self:new_scope(_if.body)
+        return
+    end
+
+	if self:expect(PRE_TOKENS.ELSEIF) then -- if 'if (condition) then ... end'
+        local _elseif = self:parse_elseif()
+		self:end_scope()
+
+		local local_scope = self:get_local_scope()
+		local if_token = local_scope[#local_scope]
+		if if_token.kind ~= KINDS.IF then
+			self:error("Unexpected 'elseif'")
+		end
+		if_token._elseif = if_token._elseif or {}
+		if_token._elseif[#if_token._elseif + 1] = _elseif
+		self:new_scope(if_token._elseif[#if_token._elseif].body)
+        --self:new_scope(_elseif.body)
+        return
+	end
+
+	if self:expect(PRE_TOKENS.ELSE) then -- else 'if (condition) then ... else end'
+        self:consume()
+		self:end_scope()
+		local local_scope = self:get_local_scope()
+		local if_token = local_scope[#local_scope]
+		if if_token.kind ~= KINDS.IF then
+			self:error("Unexpected 'else'")
+		end
+		if if_token._else then
+			self:error(string.format("duplicate 'else' in 'if' statement"))
+		end
+		if_token._else = {}
+		self:new_scope(if_token._else)
         return
     end
 

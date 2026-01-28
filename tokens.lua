@@ -17,6 +17,7 @@ local tokens = {
 	DOT = "__DOT",
 	COLON = "__COLON",
 	DOUBLE_COLON = "__COLON",
+	PREPROCESSOR_TOKEN = "__PREPROCESSOR_TOKEN",
 
 	NEW_LINE = "__NEW_LINE",
 	TAB = "__TAB",
@@ -46,6 +47,8 @@ local tokens = {
 	FUNCTION = "__FUNCTION",
 	RETURN = "__RETURN",
 	ENUM = "__ENUM",
+	EXTERN = "__EXTERN",
+	EXEND = "__EXEND",
 
 	-- ========= MATH
 
@@ -65,6 +68,8 @@ local tokens = {
 	OR = "__OR",
 	AND = "__AND",
 	NOT = "__NOT",
+
+	RAW_C = "__RAW_C",
 
 	-- ========= NUMBER (int's can be only (int, char, long, long or short). float's can only be (float and double)) 
 
@@ -104,6 +109,7 @@ local keywords = {
 	["function"] = tokens.FUNCTION,
 	["return"] = tokens.RETURN,
 	["enum"] = tokens.ENUM,
+	["extern"] = tokens.EXTERN,
 
 	["true"] = tokens.TRUE,
 	["false"] = tokens.FALSE,

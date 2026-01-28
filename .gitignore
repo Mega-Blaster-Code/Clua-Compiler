@@ -12,6 +12,7 @@ ttp.lua
 
 out.txt
 todo.todo
+cmd
 
 result.tbl
 
@@ -23,3 +24,4 @@ stdio.clua
 stdlib.clua
 main.clua
 preprocessor.clua
+tokens.clua
