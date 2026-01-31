@@ -129,7 +129,7 @@ local keywords = {
 	void = tokens.VOID,
 	bool = tokens.BOOL,
 	struct = tokens.STRUCT,
-	size_t = tokens.SIZE_T, -- stdio.h
+	size_t = tokens.SIZE_T,
 
 	-- ========= QUALIFIERS
 	signed = tokens.SIGNED,

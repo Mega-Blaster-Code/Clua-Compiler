@@ -125,6 +125,21 @@ do
     }}
 end
 
+local valid_escape_sequence = {
+	a = true,
+	b = true,
+	f = true,
+	n = true,
+	r = true,
+	t = true,
+	v = true,
+	["\\"] = true,
+	["'"] = true,
+	["\""] = true,
+	["?"] = true,
+	["0"] = true,
+}
+
 function _M.tokenize(file_path, str)
 
 	str = str:gsub("\r\n", "\n")
@@ -232,10 +247,31 @@ function _M.tokenize(file_path, str)
             }
 
             while not peek():match("\"") do
+				if peek() == "\\" then
+					push_back(consume())
+
+					if not peek() then
+						goto error_s
+					end
+
+					local code = peek()
+
+					if not valid_escape_sequence[code] then
+						error_gene("Invalid escape sequence", start.line, start.column)
+					end
+
+					push_back(consume())
+
+					goto continue
+				end
                 push_back(consume())
-                if not peek() then
+
+				::error_s::
+				if not peek() then
                     error_gene("Unfinished string", start.line, start.column)
                 end
+
+				::continue::
             end
             consume()
             is_string = false
@@ -312,6 +348,7 @@ function _M.tokenize(file_path, str)
                     end
                     new_token(buf, PRE_TOKENS.EXTERN)
                     __RAW_MODE = true
+					__RAW_C = {}
                     return true
                 end
             else

@@ -58,7 +58,7 @@ if type(ARGUMENTS:GET_FLAG("-PP")) == "boolean" then
 end
 
 local ast_handler = parser.new(file_path, ARGUMENTS, _i)
-local AST_TREE = ast_handler:start(true)
+local AST_TREE = ast_handler:start(not ARGUMENTS:GET_FLAG("-no-semicolan"))
 
 if type(ARGUMENTS:GET_FLAG("-ast")) == "string" then
 	-- TODO: make the Table To Pointer script work
