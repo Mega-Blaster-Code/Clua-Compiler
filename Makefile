@@ -20,8 +20,8 @@ FLAGS = \
 
 all: run
 
-run:
+run: clean
 	$(LUA) $(MAIN) $(FLAGS) > $(OUT_FILE)
 
-clean:
-	echo "Cleaning wowowow"
+.PHONY clean:
+	rm -f $(PREPROCESSOR_FILE) $(AST_FILE) $(TOKENS_FILE) $(OUT_FILE)
