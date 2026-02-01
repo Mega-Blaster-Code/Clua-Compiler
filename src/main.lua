@@ -1,3 +1,8 @@
+local src = debug.getinfo(1, "S").source:sub(2)
+src = src:match("(.*/)")
+
+package.path = src .. "?.lua;" .. src .. "?/init.lua;" .. package.path
+
 local ARGUMENTS = require("AFS")
 
 local PRE_TOKENS, KEYWORDS
@@ -7,7 +12,7 @@ do
     PRE_TOKENS, KEYWORDS = info[1], info[2]
 end
 
-local inspect = require("inspect")
+local inspect = require("C_inspect")
 local file2io = require("file2io")
 local color8 = require("color8")
 

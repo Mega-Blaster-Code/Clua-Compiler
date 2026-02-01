@@ -1,7 +1,7 @@
 -- preprocessor directive
 local _M = {}
 
-local inspect = require("inspect")
+local inspect = require("C_inspect")
 local file2io = require("file2io")
 local color8 = require("color8")
 

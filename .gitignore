@@ -1,6 +1,5 @@
-*
-!*.*
 .vscode/
+src/AFS
 
 ast_math.lua
 builtin.lua
@@ -15,13 +14,12 @@ todo.todo
 cmd
 
 result.tbl
+compiler2.zip
 
 clua/
 
-code.clua
-stdint.clua
-stdio.clua
-stdlib.clua
-main.clua
-preprocessor.clua
-tokens.clua
+test/ast.txt
+test/tokens.clua
+test/preprocessor.clua
+test/stdio.clua
+test/stdint.clua
