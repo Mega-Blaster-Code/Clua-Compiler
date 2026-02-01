@@ -14,6 +14,7 @@ local color8 = require("color8")
 local preprocessor = require("preprocessor")
 local lexer = require("lexer")
 local parser = require("parser")
+local semantic = require("semantic")
 
 local file_path = "main.clua"
 
@@ -67,3 +68,7 @@ if type(ARGUMENTS:GET_FLAG("-ast")) == "string" then
 	file_h:write(inspect(AST_TREE))
 	file_h:close()
 end
+
+
+local semantic_handler = semantic.new(file_path, AST_TREE, ARGUMENTS)
+semantic_handler:start()

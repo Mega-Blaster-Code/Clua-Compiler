@@ -153,6 +153,13 @@ function _M.new(file_path, ARGUMENTS, tokens)
     return self
 end
 
+function parser:__line_info()
+    return {
+        line = self.line,
+        column = self.column
+    }
+end
+
 function parser:validate_name(name)
     local error = string.format("the name '%s' is a keyword and can't be used for names", name)
     if name == "sizeof" then
@@ -528,6 +535,7 @@ end
 
 function parser:push_back(content)
     local local_scope = self:get_local_scope()
+    content.__line_info = self:__line_info()
     local_scope[#local_scope + 1] = content
 end
 
@@ -599,13 +607,20 @@ function parser:parse_primary(is_pointer)
 
     if tok.token == PRE_TOKENS.NUMBER_INT or tok.token == PRE_TOKENS.NUMBER_FLOAT then
         self:consume()
-        return {
-            kind = KINDS.LITERAL_NUMBER,
-            value = tonumber(tok.buf)
-        }
+        if tok.token == PRE_TOKENS.NUMBER_INT then
+            return {
+                kind = KINDS.LITERAL_INT,
+                value = tonumber(tok.buf)
+            }
+        elseif tok.token == PRE_TOKENS.NUMBER_FLOAT then
+            return {
+                kind = KINDS.LITERAL_FLOAT,
+                value = tonumber(tok.buf)
+            }
+        end
     end
 
-    if tok.token == PRE_TOKENS.LITERAL_STRING then
+    if tok.token == PRE_TOKENS.STRING_LITERAL then
         self:consume()
         return {
             kind = KINDS.LITERAL_STRING,
@@ -613,19 +628,11 @@ function parser:parse_primary(is_pointer)
         }
     end
 
-    if tok.token == PRE_TOKENS.LITERAL_CHAR then
+    if tok.token == PRE_TOKENS.CHAR_LITERAL then
         self:consume()
         return {
             kind = KINDS.LITERAL_CHAR,
             value = tok.buf
-        }
-    end
-
-    if tok.token == PRE_TOKENS.TRUE or tok.token == PRE_TOKENS.FALSE then
-        self:consume()
-        return {
-            kind = KINDS.LITERAL_BOOL,
-            value = tok.buf == "true"
         }
     end
 
@@ -1035,7 +1042,7 @@ function parser:parse_variable_types()
             [PRE_TOKENS.SIGNED] = true,
             [PRE_TOKENS.UNSIGNED] = true
         }) then
-			if #modifiers > 0 then
+            if #modifiers > 0 then
                 self:error("Qualifiers need to be along the type and can only be aplyed to a type")
             end
             if sign then
