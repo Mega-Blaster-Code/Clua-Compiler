@@ -20,7 +20,7 @@ FLAGS = \
 
 all: run
 
-run: clean
+run:
 	$(LUA) $(MAIN) $(FLAGS) > $(OUT_FILE)
 
 .PHONY clean:
