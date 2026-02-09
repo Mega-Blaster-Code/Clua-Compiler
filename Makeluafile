@@ -1,27 +1,3 @@
 LUA = C:/lua/lua.exe
 
 SRC_DIR  = ./src
-TEST_DIR = ./test
-
-MAIN = $(SRC_DIR)/main.lua
-
-INPUT_FILE = $(TEST_DIR)/code.clua
-PREPROCESSOR_FILE = $(TEST_DIR)/preprocessor.clua
-AST_FILE = $(TEST_DIR)/ast.txt
-TOKENS_FILE = $(TEST_DIR)/tokens.clua
-
-OUT_FILE = out.txt
-
-FLAGS = \
-	-f@$(INPUT_FILE) \
-	-pp@$(PREPROCESSOR_FILE) \
-	-ast@$(AST_FILE) \
-	-t@$(TOKENS_FILE)
-
-all: run
-
-run:
-	$(LUA) $(MAIN) $(FLAGS) > $(OUT_FILE)
-
-.PHONY clean:
-	rm -f $(PREPROCESSOR_FILE) $(AST_FILE) $(TOKENS_FILE) $(OUT_FILE)

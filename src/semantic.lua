@@ -11,6 +11,13 @@ do
     AST_SPEC, KINDS = info[1], info[2]
 end
 
+local __integers = {
+	int = true,
+	char = true,
+	uchar = true,
+	uint = true
+}
+
 local semantic = {}
 semantic.__index = semantic
 
@@ -114,6 +121,10 @@ function semantic:CEexpect(kind)
 	return self:consume()
 end
 
+function semantic:typeInClass(_type, class)
+	return class[_type] or false
+end
+
 function semantic:error(msg)
     local line = self.line
     local column = self.column
@@ -203,49 +214,135 @@ function semantic:define(type, qualifiers, modifiers, name, value_expression)
 end
 
 local types_to_kinds = {
-	["int"] = KINDS.LITERAL_INT,
-	["float"] = KINDS.LITERAL_FLOAT,
-	["double"] = KINDS.LITERAL_FLOAT,
-	["char"] = KINDS.LITERAL_INT,
+	["int"] = {KINDS.LITERAL_INT},
+	["float"] = {KINDS.LITERAL_FLOAT},
+	["double"] = {KINDS.LITERAL_FLOAT},
+	["char"] = {KINDS.LITERAL_CHAR, KINDS.LITERAL_INT},
 }
 
-function semantic:is_pointer_var(var)
-	if not var.modifiers[1] then
+--[[
+
+char            = 8 
+int             = 32
+int short       = 16
+int long        = 64
+int long long   = 64
+
+]]
+
+local types_size = {
+	["int"] = {size = 16, min = -2147483648, max = 2147483647},
+	["char"] = {size = 8, min = -128, max = 127},
+	["uint"] = {size = 16, min = 0, max = 4294967295},
+	["uchar"] = {size = 8, min = 0, max = 255},
+}
+
+local LIMITS = {
+    float = {
+        min = -3.402823466e38,
+        max =  3.402823466e38,
+        mantissa_bits = 24,
+        integer = false
+    },
+
+    double = {
+        min = -1.7976931348623157e308,
+        max =  1.7976931348623157e308,
+        mantissa_bits = 53,
+        integer = false
+    }
+}
+
+function semantic:isPointerDeclaration(declaration)
+	if not declaration.modifiers[1] then
 		return false
 	end
 
-	if not (var.modifiers[1].kind == KINDS.POINTER_MODIFIER) then
-		return false
+	for i, v in ipairs(declaration.modifiers) do
+		if v.kind == KINDS.POINTER_MODIFIER then
+			return true
+		end
 	end
 
-	return true
+	if declaration.modifiers[1].kind == KINDS.POINTER_MODIFIER then
+		--return true
+	end
+
+	return false
 end
 
-function semantic:check_var_declaration()
+function semantic:getDeclarationVarSize(declaration)
+	if self:typeInClass(declaration.type, __integers) then
+		
+		local size = types_size[declaration.type]
+		print(inspect(size))
+		
+		for i, qual in ipairs(declaration.qualifiers) do
+			
+		end
+	else
+		
+	end
+end
+
+function semantic:CheckVarFromInit(declaration, expression_result, expect, receive)
+	if self:isPointerDeclaration(declaration) then
+		-- void pointer or something else
+
+		if expect == KINDS.LITERAL_CHAR then
+			print("CHAR POINTER", receive)
+			if receive == KINDS.LITERAL_STRING then
+				return true, nil
+			end
+		end
+
+		return false, ("Type error. expected a pointer expression")
+	else
+		if expect == "void" then
+			return false, ("Type error. void needs to be a pointer")
+		end
+	end
+
+	if expect ~= receive then
+		return false, string.format("Type error. declaring a '%s' with a '%s'", expect, receive)
+	end
+
+	return true, nil
+end
+
+function semantic:CheckVarDeclaration()
 	local declaration = self:Econsume()
 	local expression_result = self:get_expression(declaration.value)
 
-	local _type = declaration.type
-	print(inspect(expression_result), _type)
+	local _types = types_to_kinds[declaration.type]
 
-	if types_to_kinds[_type] then
-		if types_to_kinds[_type] ~= expression_result then
-			self:error(string.format("Type error. declaring a '%s' with a '%s'", _type, expression_result))
+	local err = nil
+
+	--print(_types)
+
+	for i, _type in ipairs(_types) do
+		local correct, e = self:CheckVarFromInit(declaration, expression_result, _type, expression_result)
+		if correct then
+			err = nil
+			break
 		end
+		err = e
 	end
 
-	if _type == "void" then
-		if not self:is_pointer_var(declaration) then
-			self:error("Type error. void needs to be a pointer")
-		end
+	if err then
+		self:error(err)
 	end
 
+	self:getDeclarationVarSize(declaration)
+
+	print(inspect(expression_result), _types, err)
+	
 end
 
 function semantic:start()
 	while self:peek() do
 		if self:expect(KINDS.VAR_DECLARATION) then
-			self:check_var_declaration()
+			self:CheckVarDeclaration()
 		end
 	end
 end

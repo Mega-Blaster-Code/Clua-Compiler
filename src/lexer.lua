@@ -126,24 +126,29 @@ do
 end
 
 local valid_escape_sequence = {
-	a = true,
-	b = true,
-	f = true,
-	n = true,
-	r = true,
-	t = true,
-	v = true,
-	["\\"] = true,
-	["'"] = true,
-	["\""] = true,
-	["?"] = true,
-	["0"] = true,
+    a = '\a',
+    b = '\b',
+    f = '\f',
+    n = '\n',
+    r = '\r',
+    t = '\t',
+    v = '\v',
+    ["\\"] = '\\',
+    ["'"] = '\'',
+    ["\""] = '\"',
+    ["0"] = '\0'
 }
+
+local function unescape(s)
+    return s:gsub("\\(.)", function(c)
+        return valid_escape_sequence[c] or c
+    end)
+end
 
 function _M.tokenize(file_path, str)
 
-	str = str:gsub("\r\n", "\n")
-	
+    str = str:gsub("\r\n", "\n")
+
     local __RAW_MODE = false
     local __RAW_C = {}
 
@@ -184,9 +189,9 @@ function _M.tokenize(file_path, str)
     local buf = ""
 
     local function new_token(buffer, token)
-		if __RAW_MODE then
-			return
-		end
+        if __RAW_MODE then
+            return
+        end
         table.insert(tokens, {
             buf = buffer,
             token = token,
@@ -203,9 +208,9 @@ function _M.tokenize(file_path, str)
     end
 
     local function push_back(char)
-		if __RAW_MODE then
-			__RAW_C[#__RAW_C + 1] = char
-		end
+        if __RAW_MODE then
+            __RAW_C[#__RAW_C + 1] = char
+        end
         buf = buf .. char
     end
 
@@ -215,24 +220,24 @@ function _M.tokenize(file_path, str)
     local function match_patterns()
         if peek() and peek():match("[ ]") then
             while peek() and peek():match("[ ]") do
-				if __RAW_MODE then
-                	push_back(consume())
-					return true
-				else
-					consume()
-				end
+                if __RAW_MODE then
+                    push_back(consume())
+                    return true
+                else
+                    consume()
+                end
             end
             return true
         end
 
         if peek() and peek() == "\n" then
-				push_back(consume())
+            push_back(consume())
             -- buf = ""
             return true
         end
 
         if peek() and peek() == "\t" then
-				push_back(consume())
+            push_back(consume())
             -- buf = ""
             return true
         end
@@ -247,31 +252,31 @@ function _M.tokenize(file_path, str)
             }
 
             while not peek():match("\"") do
-				if peek() == "\\" then
-					push_back(consume())
+                if peek() == "\\" then
+                    push_back(consume())
 
-					if not peek() then
-						goto error_s
-					end
+                    if not peek() then
+                        goto error_s
+                    end
 
-					local code = peek()
+                    local code = peek()
 
-					if not valid_escape_sequence[code] then
-						error_gene("Invalid escape sequence", start.line, start.column)
-					end
+                    if not valid_escape_sequence[code] then
+                        error_gene("Invalid escape sequence", start.line, start.column)
+                    end
 
-					push_back(consume())
+                    push_back(consume())
 
-					goto continue
-				end
+                    goto continue
+                end
                 push_back(consume())
 
-				::error_s::
-				if not peek() then
+                ::error_s::
+                if not peek() then
                     error_gene("Unfinished string", start.line, start.column)
                 end
 
-				::continue::
+                ::continue::
             end
             consume()
             is_string = false
@@ -314,12 +319,29 @@ function _M.tokenize(file_path, str)
         end
 
         if peek() and peek() == "'" and peek(1) then
-            if peek(2) and peek(2) == "'" then
+            if (peek(2) and peek(2) == "'") or (peek(3) and peek(3) == "'") then
                 consume()
                 local c = consume()
+				local code = ""
+                if c == "\\" then
+					if not peek() then
+						error_gene("Invalid escape sequence", line, column)
+					end
+                    code = consume()
+					print("CODE!!!!", code)
+
+                    if not valid_escape_sequence[code] then
+                        error_gene("Invalid escape sequence", line, column)
+                    end
+                end
+
+				if peek() ~= "'" then
+					error_gene("Invalid Char literal")
+				end
+
                 consume()
 
-                new_token(c, PRE_TOKENS.CHAR_LITERAL)
+                new_token(string.byte(unescape(c .. code)), PRE_TOKENS.NUMBER_INT)
                 buf = ""
                 return true
             else
@@ -335,7 +357,7 @@ function _M.tokenize(file_path, str)
                 for i = 1, #exstr do
                     local char = exstr:sub(i, i)
                     local t_char = peek(i - 1)
-					
+
                     if char ~= t_char then
                         equal = false
                         break
@@ -348,11 +370,11 @@ function _M.tokenize(file_path, str)
                     end
                     new_token(buf, PRE_TOKENS.EXTERN)
                     __RAW_MODE = true
-					__RAW_C = {}
+                    __RAW_C = {}
                     return true
                 end
             else
-				
+
                 local equal = true
                 for i = 1, #enstr do
                     local char = enstr:sub(i, i)
@@ -364,17 +386,17 @@ function _M.tokenize(file_path, str)
                 end
 
                 if equal then
-					__RAW_MODE = false
+                    __RAW_MODE = false
 
-					new_token(table.concat(__RAW_C), PRE_TOKENS.RAW_C)
+                    new_token(table.concat(__RAW_C), PRE_TOKENS.RAW_C)
 
                     for i = 1, #exstr, 1 do
                         consume()
                     end
 
-					--new_token(buf, PRE_TOKENS.EXEND)
+                    -- new_token(buf, PRE_TOKENS.EXEND)
 
-					return true
+                    return true
                 end
             end
         end
@@ -383,7 +405,7 @@ function _M.tokenize(file_path, str)
             push_back(consume())
             while peek() and peek():match("[%w_]") do
                 push_back(consume())
-				--print("[%a_]", inspect(buf), peek())
+                -- print("[%a_]", inspect(buf), peek())
             end
             return false
         end

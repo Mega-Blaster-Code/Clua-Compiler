@@ -49,7 +49,9 @@ local __modifiers = {
 
 local __qualifiers = {
     [PRE_TOKENS.LONG] = true,
-    [PRE_TOKENS.SHORT] = true
+    [PRE_TOKENS.SHORT] = true,
+	[PRE_TOKENS.SIGNED] = true,
+	[PRE_TOKENS.UNSIGNED] = true,
 }
 
 local __types_and_modifiers = {
@@ -610,12 +612,12 @@ function parser:parse_primary(is_pointer)
         if tok.token == PRE_TOKENS.NUMBER_INT then
             return {
                 kind = KINDS.LITERAL_INT,
-                value = tonumber(tok.buf)
+                value = tok.buf
             }
         elseif tok.token == PRE_TOKENS.NUMBER_FLOAT then
             return {
                 kind = KINDS.LITERAL_FLOAT,
-                value = tonumber(tok.buf)
+                value = tok.buf
             }
         end
     end
@@ -1016,8 +1018,6 @@ function parser:parse_variable_types()
     local long_count = 0
     local is_short = false
 
-    local sign = nil
-
     while self:Texpect(__modifiers) do
         local mod = self:consume()
 
@@ -1037,22 +1037,6 @@ function parser:parse_variable_types()
                 kind = KINDS.ARRAY_MODIFIER,
                 size = size
             })
-
-        elseif self:token_in_class(mod, {
-            [PRE_TOKENS.SIGNED] = true,
-            [PRE_TOKENS.UNSIGNED] = true
-        }) then
-            if #modifiers > 0 then
-                self:error("Qualifiers need to be along the type and can only be aplyed to a type")
-            end
-            if sign then
-                self:error("Variable can't be 'signed' and 'unsigned' ate the same time")
-            end
-            if mod.token == PRE_TOKENS.UNSIGNED then
-                sign = __unsigned
-            end
-
-            sign = __signed
 
         elseif self:token_in_class(mod, __qualifiers) then
             if #modifiers > 0 then
@@ -1085,6 +1069,21 @@ function parser:parse_variable_types()
                     self:error("Variable can't have 'short short +...'")
                 end
                 is_short = true
+            elseif mod.token == PRE_TOKENS.SIGNED or mod.token == PRE_TOKENS.UNSIGNED then
+				
+                if not self:str_in_class(raw_type, {
+					[PRE_TOKENS.INT] = true,
+					[PRE_TOKENS.CHAR] = true,
+                }) then
+                    self:error(string.format("Variable can't be 'signed' and '%s'", type))
+                end
+				for i = 1, #qualifiers do
+					local q = qualifiers[i]
+					print("KINDS", q.value, mod.buf)
+					if q.value == "signed" or q.value == "unsigned" then
+						self:error(string.format("Variable can't be '%s' and '%s'", q.value, mod.buf))
+					end
+				end
             end
 
             table.insert(qualifiers, {
@@ -1110,7 +1109,6 @@ function parser:parse_variable_types()
         qualifiers = qualifiers,
         long_count = long_count,
         is_short = is_short,
-        sign = sign
     }
 end
 
