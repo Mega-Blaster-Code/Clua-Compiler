@@ -90,8 +90,8 @@ existem 4 modificadores
 
 - const
 - volitale
-- *
-- []
+- \*
+- [ ]
 
 ``` lua
 int * x; -- pointer to int
