@@ -1,1 +1,1 @@
-char x = -128;
+char unsigned x = 255;
