@@ -125,46 +125,35 @@ function semantic:typeInClass(_type, class)
 	return class[_type] or false
 end
 
-function semantic:error(msg)
-    local line = self.line
+local function createMessage(self, msg)
+	local line = self.line
     local column = self.column
 
     local message = {}
 
-    message[#message + 1] = (string.format("SINTAX ERROR ['%s'] line %s column %s\n", self.file_path, line, column))
+    message[#message + 1] = (string.format("SEMANTIC ERROR ['%s'] line %s column %s\n", self.file_path, line, column))
     message[#message + 1] = (msg)
     message[#message + 1] = ("\n")
 
     message = table.concat(message)
+
+	return message
+end
+
+function semantic:error(msg)
+    local message = createMessage(self, msg)
 
     self.ARGUMENTS:ERROR(message)
 end
 
 function semantic:warn(msg)
-    local line = self.line
-    local column = self.column
-    local message = {}
-
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n")
-
-    message = table.concat(message)
+    local message = createMessage(self, msg)
 
     self.ARGUMENTS:WARN(message)
 end
 
 function semantic:notification(msg)
-    local line = self.line
-    local column = self.column
-
-    local message = {}
-
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n")
-
-    local message = table.concat(message)
+    local message = createMessage(self, msg)
 
     self.ARGUMENTS:INFO(message)
 end
@@ -183,7 +172,7 @@ function semantic:pop_scope()
 	self.scope[#self.scope] = nil
 end
 
-function semantic:get_expression(expression)
+function semantic:getExpression(expression)
 	if expression.kind == KINDS.LITERAL_INT then
 		return expression.kind
 	elseif expression.kind == KINDS.LITERAL_FLOAT then
@@ -193,8 +182,8 @@ function semantic:get_expression(expression)
 	elseif expression.kind == KINDS.LITERAL_CHAR then
 		return expression.kind
 	elseif expression.kind == KINDS.BINARY_EXPRESSION then
-		local left = self:get_expression(expression.left)
-		local right = self:get_expression(expression.right)
+		local left = self:getExpression(expression.left)
+		local right = self:getExpression(expression.right)
 		if left.kind ~= right.kind then
 			self:error(string.format("Binary expression with [%s](%s) and [%s](%s)", tostring(left.value), left.kind, tostring(right.value), right.kind))
 		end
@@ -231,27 +220,29 @@ int long long   = 64
 ]]
 
 local types_size = {
-	["int"] = {size = 16, min = -2147483648, max = 2147483647},
+	["int"] = {size = 32, min = -2147483648, max = 2147483647},
 	["char"] = {size = 8, min = -128, max = 127},
-	["uint"] = {size = 16, min = 0, max = 4294967295},
+	["uint"] = {size = 32, min = 0, max = 4294967295},
 	["uchar"] = {size = 8, min = 0, max = 255},
 }
 
-local LIMITS = {
-    float = {
-        min = -3.402823466e38,
-        max =  3.402823466e38,
-        mantissa_bits = 24,
-        integer = false
-    },
+local function countSignificantDigits(literal)
+    literal = literal:gsub("^[+-]", "")
 
-    double = {
-        min = -1.7976931348623157e308,
-        max =  1.7976931348623157e308,
-        mantissa_bits = 53,
-        integer = false
-    }
-}
+    local int, frac = literal:match("^(%d*)%.?(%d*)$")
+    int = int or ""
+    frac = frac or ""
+
+    int = int:gsub("^0+", "")
+    frac = frac:gsub("0+$", "")
+
+    if int == "" and frac == "" then
+        return 0
+    end
+
+    return #int + #frac
+end
+
 
 function semantic:isPointerDeclaration(declaration)
 	if not declaration.modifiers[1] then
@@ -274,14 +265,35 @@ end
 function semantic:getDeclarationVarSize(declaration)
 	if self:typeInClass(declaration.type, __integers) then
 		
-		local size = types_size[declaration.type]
-		print(inspect(size))
+		local allsize = types_size[declaration.type]
+		for i, qual in ipairs(declaration.qualifiers) do
+			if qual.value == "unsigned" then
+				allsize = types_size["u" .. declaration.type]
+			end
+		end
+	
+		local size = allsize.size
 		
 		for i, qual in ipairs(declaration.qualifiers) do
-			
+			if qual.value == "long" and size < 64 then
+				size = size * 2
+			end
+			if qual.value == "short" and size > 8 then
+				size = size // 2
+			end
 		end
-	else
 		
+		return allsize.max, allsize.min, size
+	else
+		local size = 7
+		
+		for i, qual in ipairs(declaration.qualifiers) do
+			if qual.value == "double" and size < 64 then
+				size = size * 2
+			end
+		end
+
+		return size
 	end
 end
 
@@ -312,7 +324,7 @@ end
 
 function semantic:CheckVarDeclaration()
 	local declaration = self:Econsume()
-	local expression_result = self:get_expression(declaration.value)
+	local expression_result = self:getExpression(declaration.value)
 
 	local _types = types_to_kinds[declaration.type]
 
@@ -333,7 +345,16 @@ function semantic:CheckVarDeclaration()
 		self:error(err)
 	end
 
-	self:getDeclarationVarSize(declaration)
+	
+	if expression_result == KINDS.LITERAL_FLOAT or expression_result == KINDS.LITERAL_INT then
+		local max, min, var_max_size = self:getDeclarationVarSize(declaration)
+
+		if expression_result == KINDS.LITERAL_INT then
+			--declaration.value.value
+		else
+			
+		end
+	end
 
 	print(inspect(expression_result), _types, err)
 	

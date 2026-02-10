@@ -18,7 +18,7 @@ char *FRread(const char *file_path, const char *mode, size_t *size){
         fclose(file_ptr);
         return NULL;
     }
-
+	
 	rewind(file_ptr);
 
 	char *buffer = malloc((size_t)file_size + 1);
@@ -29,14 +29,14 @@ char *FRread(const char *file_path, const char *mode, size_t *size){
 
     size_t read = fread(buffer, 1, (size_t)file_size, file_ptr);
     fclose(file_ptr);
-
+	
     if (read != (size_t)file_size) {
-        free(buffer);
+		free(buffer);
         return NULL;
     }
-
+	
     buffer[file_size] = '\0';
     *size = (size_t)file_size;
-
+	
     return buffer;
 }
