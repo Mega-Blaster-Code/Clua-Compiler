@@ -1,1 +1,1 @@
-int long x = 127;
+char x = -128;

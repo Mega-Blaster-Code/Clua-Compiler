@@ -174,20 +174,28 @@ end
 
 function semantic:getExpression(expression)
 	if expression.kind == KINDS.LITERAL_INT then
-		return expression.kind
+		return expression.kind, expression.value
 	elseif expression.kind == KINDS.LITERAL_FLOAT then
-		return expression.kind
+		return expression.kind, expression.value
 	elseif expression.kind == KINDS.LITERAL_STRING then
-		return expression.kind
+		return expression.kind, expression.value
 	elseif expression.kind == KINDS.LITERAL_CHAR then
-		return expression.kind
+		return expression.kind, expression.value
+	elseif expression.kind == KINDS.UNARY_EXPRESSION then
+		local next = self:getExpression(expression.expr)
+		if expression.op == "-" then
+			if next == KINDS.LITERAL_INT then
+				
+			end
+		end
+		return 
 	elseif expression.kind == KINDS.BINARY_EXPRESSION then
 		local left = self:getExpression(expression.left)
 		local right = self:getExpression(expression.right)
 		if left.kind ~= right.kind then
 			self:error(string.format("Binary expression with [%s](%s) and [%s](%s)", tostring(left.value), left.kind, tostring(right.value), right.kind))
 		end
-		return left.kind
+		return left.kind, expression.value
 	end
 end
 
@@ -324,7 +332,7 @@ end
 
 function semantic:CheckVarDeclaration()
 	local declaration = self:Econsume()
-	local expression_result = self:getExpression(declaration.value)
+	local expression_result, literal_v = self:getExpression(declaration.value)
 
 	local _types = types_to_kinds[declaration.type]
 
@@ -348,9 +356,13 @@ function semantic:CheckVarDeclaration()
 	
 	if expression_result == KINDS.LITERAL_FLOAT or expression_result == KINDS.LITERAL_INT then
 		local max, min, var_max_size = self:getDeclarationVarSize(declaration)
-
+		local value = literal_v
 		if expression_result == KINDS.LITERAL_INT then
-			--declaration.value.value
+			print("VALUE", inspect(declaration))
+			local num = tonumber(value)
+			if num > max or num < min then
+				self:error(string.format("Literal '%s' has a max and min of (%d : %d). value of literal is %s", declaration.type, max, min, value))
+			end
 		else
 			
 		end
