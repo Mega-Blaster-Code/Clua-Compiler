@@ -199,6 +199,7 @@ function _M.tokenize(file_path, str)
             column = column,
             row = row
         })
+        buf = ""
     end
 
     local function tpeek(length)
@@ -244,44 +245,46 @@ function _M.tokenize(file_path, str)
 
         if peek():match("\"") then
             consume()
-            is_string = true
 
             local start = {
                 line = line,
                 column = column
             }
 
-            while not peek():match("\"") do
-                if peek() == "\\" then
-                    push_back(consume())
-
-                    if not peek() then
-                        goto error_s
-                    end
-
-                    local code = peek()
-
-                    if not valid_escape_sequence[code] then
-                        error_gene("Invalid escape sequence", start.line, start.column)
-                    end
-
-                    push_back(consume())
-
-                    goto continue
-                end
-                push_back(consume())
-
-                ::error_s::
-                if not peek() then
-                    error_gene("Unfinished string", start.line, start.column)
-                end
-
-                ::continue::
-            end
-            consume()
-            is_string = false
-            new_token(buf, PRE_TOKENS.STRING_LITERAL)
             buf = ""
+
+            push_back("[")
+            new_token(buf, PRE_TOKENS.OPEN_BRACKETS)
+
+            while peek() ~= "\"" do
+                local c = consume()
+
+                if c == "\\" then
+                    local code = consume()
+                    if not code then
+                        error_gene("Invalid string")
+                    end
+                    new_token(tostring(string.byte(unescape(c .. code))), PRE_TOKENS.NUMBER_INT)
+                else
+                    new_token(tostring(string.byte(c)), PRE_TOKENS.NUMBER_INT)
+                    if not peek() then
+                        error_gene("Invalid string")
+                    end
+                    push_back(",")
+                    new_token(buf, PRE_TOKENS.COMMA)
+                end
+            end
+
+            consume() -- ""
+
+            buf = ""
+
+            push_back("0")
+            new_token(buf, PRE_TOKENS.NUMBER_INT)
+
+            push_back("]")
+            new_token(buf, PRE_TOKENS.CLOSE_BRACKETS)
+
             return true
         end
 
@@ -322,26 +325,29 @@ function _M.tokenize(file_path, str)
             if (peek(2) and peek(2) == "'") or (peek(3) and peek(3) == "'") then
                 consume()
                 local c = consume()
-				local code = ""
+                local code = nil
                 if c == "\\" then
-					if not peek() then
-						error_gene("Invalid escape sequence", line, column)
-					end
+                    if not peek() then
+                        error_gene("Invalid escape sequence", line, column)
+                    end
                     code = consume()
-					print("CODE!!!!", code)
 
                     if not valid_escape_sequence[code] then
                         error_gene("Invalid escape sequence", line, column)
                     end
                 end
 
-				if peek() ~= "'" then
-					error_gene("Invalid Char literal")
-				end
+                if peek() ~= "'" then
+                    error_gene("Invalid Char literal")
+                end
 
                 consume()
 
-                new_token(string.byte(unescape(c .. code)), PRE_TOKENS.NUMBER_INT)
+                if code then
+                    new_token(tostring(string.byte(unescape(c .. code))), PRE_TOKENS.NUMBER_INT)
+                else
+                    new_token(tostring(string.byte(c)), PRE_TOKENS.NUMBER_INT)
+                end
                 buf = ""
                 return true
             else
@@ -545,7 +551,7 @@ function _M.tokenize(file_path, str)
 
         if not token.buf then
             error_gene(string.format(
-                "error_gene while generating tokens. Token '%s' don't have a valid buffer with info ; pre-token['%s'] buffer['%s']",
+                "error_gene while generating tokens. Token '%s' don't have a valid buffer with info ; buffer['%s']",
                 token.token, tostring(token.buf)))
         end
     end

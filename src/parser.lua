@@ -293,6 +293,9 @@ function parser:warn(msg, raise)
         while i < right_off do
             local right = self.tokens[i + self.last_token_index]
             if right then
+				--if not right.buf then
+				--	break
+				--end
                 if right.token == PRE_TOKENS.NEW_LINE then
                     break
                 end
