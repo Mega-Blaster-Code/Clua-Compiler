@@ -100,6 +100,7 @@ local __math_level_4 = {
 
 local __math_level_5 = {
     [PRE_TOKENS.DIVIDE] = true,
+	[PRE_TOKENS.INT_DIVIDE] = true,
     [PRE_TOKENS.ASTERISK] = true,
     [PRE_TOKENS.MODULE] = true
 }
@@ -134,7 +135,6 @@ function _M.new(file_path, ARGUMENTS, tokens)
 
     self.replacements = {}
 
-    -- print(inspect(tokens))
 
     self.line = 1
     self.column = 1
@@ -224,7 +224,7 @@ end
 local function buildMessage(self, msg, er, tokens)
 	local message = {}
 
-    message[#message + 1] = (string.format("%s ['%s'] line %s column %s\n", er, self.file_path, line, column))
+    message[#message + 1] = (string.format("%s ['%s'] %sline:%s column:%s%s\n", er, self.file_path, color8.sfcolor(50, 150, 255), self.line, self.column, color8.sfcolor(200, 200, 200)))
     message[#message + 1] = (msg)
     message[#message + 1] = ("\n\n")
 
@@ -734,7 +734,6 @@ function parser:parse_call()
     if not self:expect(PRE_TOKENS.CLOSE_PARENTHESES) then
         while true do
             table.insert(args, self:parse_expression())
-            -- print(inspect(self:peek()))
 
             if not self:Cexpect(PRE_TOKENS.COMMA) then
                 break
@@ -1120,8 +1119,6 @@ function parser:parse_struct()
         self:CEexpect(PRE_TOKENS.SEMICOLON)
     end
 
-    -- print(inspect(variables))
-
     self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
 
     return {
@@ -1151,8 +1148,6 @@ function parser:parse_enum()
         variables[#variables + 1] = name
         self:CEexpect(PRE_TOKENS.COMMA)
     end
-
-    -- print(inspect(variables))
 
     self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
 
@@ -1201,7 +1196,6 @@ function parser:parse_statement()
 
     if self:Texpect(__types) then
         local info, ignore_semicolon = self:parse_declaration()
-        -- print(inspect(info))
         self:push_back(info)
         if not ignore_semicolon then
             if self.use_semicolan then
@@ -1344,7 +1338,6 @@ function parser:start(use_semicolan)
         self:error("Scope was not closed")
     end
 
-    -- print(inspect(self.buffer))
     return self.buffer
 end
 

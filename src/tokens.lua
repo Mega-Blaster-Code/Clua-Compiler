@@ -56,6 +56,7 @@ local tokens = {
 	PLUS = "__PLUS",
 	ASTERISK = "__ASTERISK",
 	DIVIDE = "__DIVIDE",
+	INT_DIVIDE = "__INT_DIVIDE",
 	MODULE = "__MODULE",
 
 	-- ========= COMPARISON

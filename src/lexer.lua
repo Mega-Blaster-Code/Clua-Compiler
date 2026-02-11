@@ -233,13 +233,11 @@ function _M.tokenize(file_path, str)
 
         if peek() and peek() == "\n" then
             push_back(consume())
-            -- buf = ""
             return true
         end
 
         if peek() and peek() == "\t" then
             push_back(consume())
-            -- buf = ""
             return true
         end
 
@@ -275,7 +273,7 @@ function _M.tokenize(file_path, str)
                 end
             end
 
-            consume() -- ""
+            consume()
 
             buf = ""
 
@@ -400,8 +398,6 @@ function _M.tokenize(file_path, str)
                         consume()
                     end
 
-                    -- new_token(buf, PRE_TOKENS.EXEND)
-
                     return true
                 end
             end
@@ -411,7 +407,6 @@ function _M.tokenize(file_path, str)
             push_back(consume())
             while peek() and peek():match("[%w_]") do
                 push_back(consume())
-                -- print("[%a_]", inspect(buf), peek())
             end
             return false
         end
@@ -476,6 +471,13 @@ function _M.tokenize(file_path, str)
                 buf = ""
                 return true
             end
+			
+			if peek() == "/" and peek(1) == "/" then
+				push_back(consume())
+                push_back(consume())
+                return false
+			end
+
             push_back(consume())
             return false
         end

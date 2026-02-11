@@ -193,11 +193,6 @@ function directives.define(self)
         end
     end
 
-    -- print(inspect(inti_tokens))
-    -- --print("EQUAL")
-    -- print(inspect(expr_tokens))
-    -- --print("DEFINE")
-
     ::_end_define::
 
     self.macros[#self.macros + 1] = {
@@ -225,11 +220,8 @@ function directives.undef(self)
 end
 
 function directives.ifdef(self)
-    --print("IFDEF")
 
     local inti_tokens = get_ifdefinition(self)
-
-    --print(inspect(inti_tokens))
 
     local result, i = self:search_macro(inti_tokens)
 
@@ -241,7 +233,6 @@ function directives.ifdef(self)
 end
 
 function directives.elif(self)
-    --print("ELIF")
 
     local inti_tokens = get_ifdefinition(self)
 
@@ -263,11 +254,7 @@ function directives.elif(self)
 end
 
 function directives.ifndef(self)
-    --print("IFNDEF")
-
     local inti_tokens = get_ifdefinition(self)
-
-    --print(inspect(inti_tokens))
 
     local result, i = self:search_macro(inti_tokens)
 
@@ -278,8 +265,6 @@ function directives.ifndef(self)
 end
 
 directives["else"] = function (self)
-    --print("ELSE")
-
 	local top = self.if_stack[#self.if_stack]
 
 	if top.branch_taken then
@@ -293,8 +278,6 @@ directives["else"] = function (self)
 end
 
 function directives.endif(self)
-	--print("ENDIF")
-
 	if #self.if_stack == 0 then
 		self:error("can't use #endif in global scope")
 	end
@@ -326,7 +309,6 @@ function directives.require(self)
 
 	local tokens = lexer.tokenize(name, content)
 
-	--print(inspect(tokens))
 	self:inject(tokens)
 end
 
@@ -401,8 +383,6 @@ function processor:search_macro(tokens)
                 break
             end
 
-            -- --print("J",inspect(tokens[j]), j, inspect(token))
-
             if tokens[j].kind ~= token.kind then
                 equal = false
                 break
@@ -462,7 +442,6 @@ function processor:try_match_macro(macro)
 end
 
 function processor:apply_macro(macro, match)
-    -- print(inspect(self.expanding[macro]))
     if (self.expanding[macro] or 0) > self.max_recursion_genereation then
         self:error(string.format("Recursive macro (%d) expansion detected: '%s'", self.max_recursion_genereation,
             macro.name or "<anonymous>"))
@@ -905,7 +884,6 @@ function processor:start()
     while self.pos <= #self.tokens do
         if self:expect(PRE_TOKENS.PREPROCESSOR_TOKEN) then
             local name = self:consume().buf:sub(2, -1)
-            --print("NAME", name)
             directives[name](self)
         else
             local expanded = false
