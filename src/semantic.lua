@@ -323,7 +323,6 @@ local function fitsInBits(str, typename)
     local abs = negative and str:sub(2) or str
     abs = stripZeros(abs)
 
-    -- unsigned não aceita negativo
     if negative and not limit.signed then
         return false
     end
@@ -363,9 +362,9 @@ function semantic:getIntSizeName(declaration)
         for i, qual in ipairs(declaration.qualifiers) do
             if qual.value == "unsigned" then
                 u = true
+				allsize = LIMITS["u" .. declaration.type]
             end
         end
-		print("UNSIGNED", u)
 		if u then
 			return "u" .. declaration.type, allsize
 		end
@@ -450,7 +449,7 @@ function semantic:CheckVarDeclaration()
 				local type_name, all = self:getIntSizeName(declaration)
                 if not fitsInBits(value, type_name) then
                     self:error(string.format("Literal '%s %s' has a max and min of (%d : %d). value of literal is %s",
-                        declaration.type, (all.min == 0 and "unsigned") or "signed", all.max, all.min, value))
+                        declaration.type, (all.signed == 0 and "unsigned") or "signed", all.max, all.min, value))
                 end
             else
                 -- print("VALUE", inspect(declaration))
