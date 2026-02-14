@@ -11,7 +11,7 @@ TOKENS_FILE = $(TEST_DIR)/tokens.clua
 OUT_FILE = out.txt
 
 
-LUA_FLAGS = -f@$(INPUT_FILE) -pp@$(PREPROCESSOR_FILE) -ast@$(AST_FILE) -t@$(TOKENS_FILE)
+LUA_FLAGS = -f@$(INPUT_FILE) -pp@$(PREPROCESSOR_FILE) -ast@$(AST_FILE) -tt@$(TOKENS_FILE)
 
 SRC_PATH = src
 OBJ_PATH = obj
@@ -29,6 +29,9 @@ all: $(TARGET)
 
 lua:
 	$(LUA) $(LUA_TARGET) $(LUA_FLAGS) > $(OUT_FILE)
+
+luaP:
+	$(LUA) $(LUA_TARGET) -SS $(LUA_FLAGS) > $(OUT_FILE)
 
 asm: $(ASM)
 

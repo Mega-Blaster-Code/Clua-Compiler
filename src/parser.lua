@@ -318,14 +318,14 @@ function parser:token_in_class(token, tbl)
     return tbl[token.token]
 end
 
-function parser:str_in_class(token, tbl)
-    if not token then
-        self:error("Expected token but received ['nil']")
+function parser:str_in_class(str, tbl)
+    if not str then
+        self:error("Expected str but received ['nil']")
     end
     if not tbl then
         self:error("Compiler error. Expected custom table but received ['nil']")
     end
-    return tbl[token]
+    return tbl[str]
 end
 
 function parser:Econsume()
@@ -1111,9 +1111,7 @@ function parser:parse_struct()
 
         if decla_var.kind == KINDS.NULL_VAR_DECLARATION then
             decla_var.kind = KINDS.STRUCT_VAR_DECLARATION
-        else
-            self:error("some declaration of variables in struct is wrong (i think this error is impossible to triger)")
-        end
+		end
 
         table.insert(variables, decla_var)
         self:CEexpect(PRE_TOKENS.SEMICOLON)
@@ -1146,7 +1144,11 @@ function parser:parse_enum()
         local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
 
         variables[#variables + 1] = name
-        self:CEexpect(PRE_TOKENS.COMMA)
+		if self:expect(PRE_TOKENS.COMMA) then
+        	self:CEexpect(PRE_TOKENS.COMMA)
+		else
+			break
+		end
     end
 
     self:CEexpect(PRE_TOKENS.CLOSE_BRACES)

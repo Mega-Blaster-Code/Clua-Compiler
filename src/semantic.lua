@@ -475,7 +475,5 @@ function semantic:start()
     end
 end
 
---print(fitsInBits("-5", "int"))     --> true
-
 
 return _M

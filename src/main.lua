@@ -39,13 +39,13 @@ code_handler:close()
 
 local tokens = lexer.tokenize(file_path, content)
 
-if type(ARGUMENTS:GET_FLAG("-t")) == "string" then
-	file_path = ARGUMENTS:GET_FLAG("-t")
+if type(ARGUMENTS:GET_FLAG("-tt")) == "string" then
+	file_path = ARGUMENTS:GET_FLAG("-tt")
 	local fpp = require("fpp")
 	fpp(file_path, tokens)
 end
 
-if type(ARGUMENTS:GET_FLAG("-T")) == "boolean" then
+if type(ARGUMENTS:GET_FLAG("-TT")) == "boolean" then
 	os.exit(0)
 end
 
@@ -74,6 +74,12 @@ if type(ARGUMENTS:GET_FLAG("-ast")) == "string" then
 	file_h:close()
 end
 
+if type(ARGUMENTS:GET_FLAG("-SS")) == "boolean" then
+	os.exit(0)
+end
 
 local semantic_handler = semantic.new(file_path, AST_TREE, ARGUMENTS)
 semantic_handler:start()
+
+
+io.stderr:write(string.format("%sSUCESS%s  compiled to file %s\"%s\"%s", color8.sfcolor(0, 255, 50), color8.sfcolor(200, 200, 200), color8.sfcolor(100, 150, 255), "test.out", color8.sfcolor(200, 200, 200)))
