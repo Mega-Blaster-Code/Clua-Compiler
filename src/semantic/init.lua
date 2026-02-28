@@ -1,9 +1,11 @@
 local AST_SPEC, KINDS
 
+
 do
     local info = require("ASTkinds")
     AST_SPEC, KINDS = info[1], info[2]
 end
+
 
 _SEMANTIC = {}
 

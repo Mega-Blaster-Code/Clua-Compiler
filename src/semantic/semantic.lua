@@ -274,7 +274,6 @@ local function countSignificantDigits(literal)
     return #int + #frac
 end
 
-
 local LIMITS = {
     int = {
         min = "-2147483648",

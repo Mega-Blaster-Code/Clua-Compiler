@@ -1068,7 +1068,7 @@ function parser:parse_extern()
         kind = KINDS.EXTERN,
         raw = raw_c
     }
-end
+end 
 
 function parser:parse_for()
     self:consume() -- "for"

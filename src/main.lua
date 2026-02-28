@@ -78,6 +78,7 @@ if type(ARGUMENTS:GET_FLAG("-SS")) == "boolean" then
 	os.exit(0)
 end
 
+
 local semantic_handler = semantic.new(file_path, AST_TREE, ARGUMENTS)
 semantic_handler:start()
 

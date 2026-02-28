@@ -12,11 +12,11 @@ end
 local __SEMANTIC = _SEMANTIC
 local _M = {}
 
+
 local NUMERIC_SHORT = 0
 local NUMERIC_LONG = 1
 local NUMERIC_LONGLONG = 2
 local NUMERIC_DEFAULT = 3
-
 
 local POINTER_SIZE = 8
 
