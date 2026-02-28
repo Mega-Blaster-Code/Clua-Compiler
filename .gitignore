@@ -28,3 +28,13 @@ test/tokens.clua
 test/preprocessor.clua
 test/stdio.clua
 test/stdint.clua
+
+.gitignore
+
+src/semantic/analyzer.lua
+src/semantic/contex.lua
+src/semantic/expression.lua
+src/semantic/literal.lua
+src/semantic/semantic.lua
+src/semantic/statements.lua
+src/semantic/symbols.lua

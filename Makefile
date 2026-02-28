@@ -28,16 +28,16 @@ LUA_TARGET = $(SRC_PATH)/main.lua
 all: $(TARGET)
 
 lua:
-	$(LUA) $(LUA_TARGET) $(LUA_FLAGS) > $(OUT_FILE)
+	@$(LUA) $(LUA_TARGET) $(LUA_FLAGS) > $(OUT_FILE)
 
 luaP:
-	$(LUA) $(LUA_TARGET) -SS $(LUA_FLAGS) > $(OUT_FILE)
+	@$(LUA) $(LUA_TARGET) -SS $(LUA_FLAGS) > $(OUT_FILE)
 
 asm: $(ASM)
 
 $(ASM_PATH)/%.s: $(SRC_PATH)/%.c
 	@mkdir -p $(ASM_PATH)
-	$(CC) $(FLAGS) -S $< -o $@
+	@$(CC) $(FLAGS) -S $< -o $@
 
 $(TARGET): $(OBJ)
 	@$(CC) $^ -o $@

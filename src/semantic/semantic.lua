@@ -394,16 +394,37 @@ function semantic:getFloatMaxSize(declaration)
     end
 end
 
-function semantic:CheckVarFromInit(declaration, receive, expect)
-    if self:isPointerDeclaration(declaration) then
-        -- void pointer or something else
-
-        if expect == KINDS.LITERAL_CHAR then
-            --print("CHAR POINTER", receive)
-            if receive == KINDS.LITERAL_STRING then
-                return true, nil
+function semantic:CompareTypeWithExpression(declaration, expression, literal_v)
+	if expression == KINDS.LITERAL_FLOAT or expression == KINDS.LITERAL_INT then
+        local value = literal_v
+        if literal_v then
+            if expression == KINDS.LITERAL_INT then
+				local type_name, all = self:getIntSizeName(declaration)
+                if not fitsInBits(value, type_name) then
+                    self:error(string.format("Literal '%s %s' has a max and min of (%d : %d). value of literal is %s",
+                        declaration.type, (all.signed == 0 and "unsigned") or "signed", all.max, all.min, value))
+                end
+            else
+                -- print("VALUE", inspect(declaration))
+				local _, _, var_max_size = self:getFloatMaxSize(declaration)
+                local var_count = countSignificantDigits(value)
+                if var_count > var_max_size then
+                    self:warn(string.format("Literal '%s' is losing precision. value of literal is %s",
+                        declaration.type, value))
+                end
             end
         end
+    end
+end
+
+function semantic:CheckVarFromInit(declaration, receive, expect)
+    if self:isPointerDeclaration(declaration) then
+		if expect == KINDS.LITERAL_CHAR then
+			--print("CHAR POINTER", receive)
+			if receive == KINDS.LITERAL_STRING then
+				return true, nil
+			end
+		end
 
         return false, ("Type error. expected a pointer expression")
     else
@@ -442,34 +463,17 @@ function semantic:CheckVarDeclaration()
         self:error(err)
     end
 
-    if expression_result == KINDS.LITERAL_FLOAT or expression_result == KINDS.LITERAL_INT then
-        local value = literal_v
-        if literal_v then
-            if expression_result == KINDS.LITERAL_INT then
-				local type_name, all = self:getIntSizeName(declaration)
-                if not fitsInBits(value, type_name) then
-                    self:error(string.format("Literal '%s %s' has a max and min of (%d : %d). value of literal is %s",
-                        declaration.type, (all.signed == 0 and "unsigned") or "signed", all.max, all.min, value))
-                end
-            else
-                -- print("VALUE", inspect(declaration))
-				local _, _, var_max_size = self:getFloatMaxSize(declaration)
-                local var_count = countSignificantDigits(value)
-                if var_count > var_max_size then
-                    self:warn(string.format("Literal '%s' is losing precision. value of literal is %s",
-                        declaration.type, value))
-                end
-            end
-        end
-    end
+	self:CompareTypeWithExpression(declaration, expression_result, literal_v)
 
-    -- print(inspect(expression_result), _types, err)
-
+    
 end
 
 function semantic:start()
     while self:peek() do
         if self:expect(KINDS.VAR_DECLARATION) then
+            self:CheckVarDeclaration()
+        end
+		if self:expect(KINDS.NULL_VAR_DECLARATION) then
             self:CheckVarDeclaration()
         end
     end

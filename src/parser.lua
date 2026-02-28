@@ -862,6 +862,7 @@ function parser:parse_variable_types()
 
     local long_count = 0
     local is_short = false
+	local sign = "signed"
 
     while self:Texpect(__modifiers) do
         local mod = self:consume()
@@ -929,6 +930,8 @@ function parser:parse_variable_types()
 						self:error(string.format("Variable can't be '%s' and '%s'", q.value, mod.buf))
 					end
 				end
+
+				sign = mod.buf
             end
 
             table.insert(qualifiers, {
@@ -948,12 +951,18 @@ function parser:parse_variable_types()
         self:error("Variable can't be 'short' and 'long' at the same time")
     end
 
+	if not (type == "void" and modifiers[1] and modifiers[1].kind == KINDS.POINTER_MODIFIER) then
+		self:error("Variable can't be void (only void* ...)")
+	end
+
     return {
         type = type,
         modifiers = modifiers,
-        qualifiers = qualifiers,
-        long_count = long_count,
-        is_short = is_short,
+        qualifiers = {
+			long_count = long_count,
+			sign = sign,
+			is_short = is_short,
+		},
     }
 end
 
@@ -1094,6 +1103,13 @@ function parser:parse_struct()
     self:consume() -- "struct"
 
     local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
+
+	if self:expect(PRE_TOKENS.SEMICOLON) then
+		return {
+			kind = KINDS.NULL_STRUCT_DECLARATION,
+			name = name,
+		}
+	end
 
     self:CEexpect(PRE_TOKENS.OPEN_BRACES)
 

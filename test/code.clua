@@ -1,1 +1,17 @@
-char unsigned x = 5;
+struct mystruct;
+
+struct mystruct{
+	int x;
+};
+
+void * const x = 0;
+
+----*
+
+int x;
+x = 10; -- x == 10
+
+int * y = &x;
+*y = 5; -- x == 5
+
+*----
