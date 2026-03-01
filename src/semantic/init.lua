@@ -1,5 +1,8 @@
-local AST_SPEC, KINDS
+local inspect = require("C_inspect")
+local file2io = require("file2io")
+local color8 = require("color8")
 
+local AST_SPEC, KINDS
 
 do
     local info = require("ASTkinds")
@@ -17,6 +20,45 @@ _SEMANTIC.semantic = require("semantic.semantic")
 _SEMANTIC.statements = require("semantic.statements")
 _SEMANTIC.symbols = require("semantic.symbols")
 _SEMANTIC.types = require("semantic.types")
+
+local DECLARATIONS_KINDS = {
+	[KINDS.FUNCTION_DECLARATION_PROTOTYPE] = true,
+	[KINDS.FUNCTION_DECLARATION] = true,
+	[KINDS.STRUCT_DECLARATION_PROTOTYPE] = true,
+	[KINDS.STRUCT_DECLARATION] = true,
+	[KINDS.FUNCTION_DECLARATION_PROTOTYPE] = true,
+	[KINDS.FUNCTION_DECLARATION] = true,
+	[KINDS.VAR_DECLARATION_PROTOTYPE] = true,
+	[KINDS.VAR_DECLARATION] = true,
+	[KINDS.STRUCT_VAR_DECLARATION] = true,
+	[KINDS.STRUCT_INIT_VAR_DECLARATION] = true,
+}
+
+
+local STRUCT_DECLARATIONS_KINDS = {
+	[KINDS.STRUCT_DECLARATION_PROTOTYPE] = true,
+	[KINDS.STRUCT_DECLARATION] = true,
+	[KINDS.STRUCT_VAR_DECLARATION] = true,
+	[KINDS.STRUCT_INIT_VAR_DECLARATION] = true,
+}
+
+local VAR_DECLARATIONS_KINDS = {
+	[KINDS.FUNCTION_DECLARATION_PROTOTYPE] = true,
+	[KINDS.FUNCTION_DECLARATION] = true,
+	[KINDS.VAR_DECLARATION_PROTOTYPE] = true,
+	[KINDS.VAR_DECLARATION] = true,
+	[KINDS.STRUCT_VAR_DECLARATION] = true,
+	[KINDS.STRUCT_INIT_VAR_DECLARATION] = true,
+}
+
+local FUNCTION_DECLARATIONS_KINDS = {
+	[KINDS.FUNCTION_DECLARATION_PROTOTYPE] = true,
+	[KINDS.FUNCTION_DECLARATION] = true,
+}
+
+local function isDeclaration(kind, type)
+	return type[kind] ~= nil
+end
 
 local semantic = {}
 semantic.__index = semantic
@@ -36,11 +78,13 @@ local _SEMANTIC = _SEMANTIC
 _G._SEMANTIC = nil
 
 function semantic:start()
-	local old = nil
 	for i = 1, #self.AST do
 		local node = self.AST[i]
-		if node.kind == KINDS.VAR_DECLARATION then
-			local lold = _SEMANTIC.types.build(node)
+		if isDeclaration(node.kind, VAR_DECLARATIONS_KINDS) then
+			local old = _SEMANTIC.types.build(node)
+			
+			print(_SEMANTIC.types.sizeof(old))
+			print("======")
 		end
 	end
 	

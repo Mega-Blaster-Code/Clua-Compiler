@@ -483,10 +483,11 @@ function _M.tokenize(file_path, str)
         end
 
         if peek() and peek():match("[%(%{%[%)%}%];,%.:&]") then
-            push_back(consume())
             if peek() and peek():match(":") then
                 push_back(consume())
+				return false
             end
+            push_back(consume())
             return false
         end
 

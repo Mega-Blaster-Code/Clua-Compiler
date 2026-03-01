@@ -1,17 +1,27 @@
-struct mystruct;
-
-struct mystruct{
-	int x;
-};
-
-void * const x = 0;
-
 ----*
 
-int x;
-x = 10; -- x == 10
+Clua v0.1
 
-int * y = &x;
-*y = 5; -- x == 5
+No pointers
+No structs
+No const
+No Casting Arrays
+
+
+::
+
+Variables
+Fixed Arrays
+if, else, elseif
+while
+functions
+
+
+
 
 *----
+
+int [2] [2] [2] x;
+char [10] [2] y;
+double [5] [1] x;
+int x = y;

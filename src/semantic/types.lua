@@ -27,23 +27,33 @@ local types_to_kinds = {
     ["char"] = {KINDS.LITERAL_CHAR, KINDS.LITERAL_INT}
 }
 
---[[
-
-char            = 8 
-int             = 32
-float           = 32
-int short       = 16
-int long        = 64
-int long long   = 64
-double          = 64
-double long     = 64
-
-]]
+local types_sizes = {
+	["char"] = {
+		[NUMERIC_DEFAULT] = 1,
+	},
+    ["int"] = {
+		[NUMERIC_SHORT] = 2,
+		[NUMERIC_DEFAULT] = 4,
+		[NUMERIC_LONG] = 8,
+		[NUMERIC_LONGLONG] = 8,
+	},
+	["float"] = {
+		[NUMERIC_DEFAULT] = 4,
+	},
+	["double"] = {
+		[NUMERIC_DEFAULT] = 8,
+		[NUMERIC_LONG] = 8,
+	},
+	["void"] = {
+		[NUMERIC_DEFAULT] = 8,
+	}
+}
 
 local TKINDS = {
 	BASE = "_T_BASE",
 	POINTER = "_T_POINTER",
 	ARRAY = "_T_ARRAY",
+	STRUCT = "_T_STRUCT",
 }
 
 function _M.isNumeric(var)
@@ -68,10 +78,10 @@ function _M.getNumeric(var)
 	return NUMERIC_DEFAULT
 end
 
-function _M.base(type, numeric, sign)
+function _M.base(var, numeric, sign)
 	return {
 		kind = TKINDS.BASE,
-		type = type,
+		type = var.type,
 		numeric = numeric,
 		volatile = false,
 		sign = sign,
@@ -90,10 +100,18 @@ end
 
 function _M.array(inner)
 	return {
-		kind = TKINDS.POINTER,
+		kind = TKINDS.ARRAY,
 		const = false,
 		volatile = false,
+		size = 0,
 		of = inner,
+	}
+end
+
+function _M.struct(var)
+	return {
+		kind = TKINDS.STRUCT,
+		fields = var.values.values,
 	}
 end
 
@@ -109,7 +127,7 @@ function _M.build(var)
 	local modifiers = var.modifiers
 	local qualifiers = var.qualifiers
 
-	local t = _M.base(var.type, _M.getNumeric(var), qualifiers.sign)
+	local t = _M.base(var, _M.getNumeric(var), qualifiers.sign)
 
 	for i = #var.modifiers, 1, -1 do
 		local m = var.modifiers[i]
@@ -127,6 +145,7 @@ function _M.build(var)
 			t = _M.pointer(t)
 		elseif m.kind == KINDS.ARRAY_MODIFIER then
 			t = _M.array(t)
+			t.size = m.size
 		end
 		::continue::
 	end
@@ -134,8 +153,43 @@ function _M.build(var)
 	return t
 end
 
+function _M.isVoid(t)
+    return t.kind == TKINDS.BASE and t.type == "void"
+end
+
+function _M.isNumericType(t)
+    return t.kind == TKINDS.BASE and (
+        t.type == "int" or
+        t.type == "float" or
+        t.type == "double" or
+        t.type == "char"
+    )
+end
+
+function _M.getBaseRoot(t)
+    if t.kind == TKINDS.BASE then
+        return t
+    end
+
+    if t.kind == TKINDS.POINTER then
+        return _M.getBaseRoot(t.to)
+    end
+
+    if t.kind == TKINDS.ARRAY then
+        return _M.getBaseRoot(t.of)
+    end
+end
+
 function _M.isPointer(t)
 	return t.kind == TKINDS.POINTER
+end
+
+function _M.isArray(t)
+	return t.kind == TKINDS.ARRAY
+end
+
+function _M.isStruct(t)
+	return t.kind == TKINDS.STRUCT
 end
 
 function _M.isBase(t)
@@ -154,6 +208,10 @@ function _M.equals(a,b)
 	if _M.isPointer(a) then
 		return a.const == b.const and _M.equals(b.to, a.to)
 	end
+
+	if _M.isArray(a) then
+		return a.const == b.const and _M.equals(b.of, a.of)
+	end
 end
 
 function _M.lowEquals(a,b)
@@ -168,6 +226,10 @@ function _M.lowEquals(a,b)
 	if _M.isPointer(a) then
 		return a.const == b.const and _M.lowEquals(a.to, b.to)
 	end
+
+	if _M.isArray(a) then
+		return a.const == b.const and _M.equals(b.of, a.of)
+	end
 end
 
 function _M.canAssign(to, from) -- (very restrict, needs cast for everything)
@@ -178,7 +240,40 @@ function _M.canAssign(to, from) -- (very restrict, needs cast for everything)
 	return true
 end
 
+function _M.canCast(to, from)
+
+    if _M.isNumericType(to) and _M.isNumericType(from) then
+        return true
+    end
+
+    if _M.isPointer(to) and _M.isPointer(from) then
+
+        if _M.lowEquals(to, from) then
+            return true
+        end
+
+        if _M.isBase(to.to) and to.to.type == "void" then
+            return true
+        end
+
+        if _M.isBase(from.to) and from.to.type == "void" then
+            return true
+        end
+
+        return false
+    end
+
+    if _M.isArray(to) or _M.isArray(from) then
+        return false
+    end
+
+    return false
+end
+
 function _M.binary(op, a, b) -- can, result (very restrict, needs cast for everything)
+	if _M.isPointer(a) and _M.isNumericType(b) and op == "+" then
+    	return true, a
+	end
 	if not _M.lowEquals(a, b) then
 		return false, nil
 	end
@@ -186,8 +281,30 @@ function _M.binary(op, a, b) -- can, result (very restrict, needs cast for every
 	return true, a
 end
 
+function _M.isPrimitive(t)
+	local type = t.type
+	if t.to or t.of then
+		return _M.isPrimitive(t.to or t.of)
+	end
+	return type == "int" or type == "float" or type == "char" or type == "double" or type== "void"
+end
+
 function _M.sizeof(t)
+	if t.kind == TKINDS.POINTER then
+		return types_sizes.void[t.numeric or NUMERIC_DEFAULT]
+	end
+
+	if t.kind == TKINDS.ARRAY then
+		local inside_size = _M.sizeof(t.of)
+
+		return inside_size * t.size
+	end
+
+	if _M.isBase(t) then
+		return types_sizes[t.type][t.numeric or NUMERIC_DEFAULT]
+	end
 	
+	error("Unknow type " .. tostring(t.type))
 end
 
 return _M

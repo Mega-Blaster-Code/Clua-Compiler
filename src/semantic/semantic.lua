@@ -472,7 +472,7 @@ function semantic:start()
         if self:expect(KINDS.VAR_DECLARATION) then
             self:CheckVarDeclaration()
         end
-		if self:expect(KINDS.NULL_VAR_DECLARATION) then
+		if self:expect(KINDS.VAR_DECLARATION_PROTOTYPE) then
             self:CheckVarDeclaration()
         end
     end

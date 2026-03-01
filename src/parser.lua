@@ -1,5 +1,6 @@
 -- tokens -> parser -> AST
 local _M = {}
+_M.VERSION = "0.1 LUA"
 
 local inspect = require("C_inspect")
 local file2io = require("file2io")
@@ -23,7 +24,7 @@ local __types = {
     [PRE_TOKENS.DOUBLE] = true,
     [PRE_TOKENS.BOOL] = true,
     [PRE_TOKENS.VOID] = true,
-    [PRE_TOKENS.NAME] = true -- structs
+    --[PRE_TOKENS.NAME] = true -- structs
 }
 
 local __builtin_types = {
@@ -153,6 +154,10 @@ function _M.new(file_path, ARGUMENTS, tokens)
 
     self.scopes = {self.buffer.body}
     return self
+end
+
+function parser:versionError(msg)
+	self:error(string.format("The \"%s\" version is incompatible with the sintax used in the script!\n%s\n", _M.VERSION, msg))
 end
 
 function parser:__line_info()
@@ -518,6 +523,7 @@ function parser:parse_postfix()
             }
 
         elseif self:expect(PRE_TOKENS.DOT) then
+			self:versionError("Clua version 0.1 don't have structs")
             self:consume()
             local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
 
@@ -527,6 +533,7 @@ function parser:parse_postfix()
             }
 
         elseif self:expect(PRE_TOKENS.POINTER) then
+			self:versionError("Clua version 0.1 don't have pointers")
             self:consume()
             local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
             local_base.node = {
@@ -555,6 +562,7 @@ function parser:parse_unary()
     end
 
     if self:expect(PRE_TOKENS.ASTERISK) then
+		self:versionError("Clua version 0.1 don't have pointers")
         local op = self:consume()
         return {
             kind = KINDS.POINTER_DEREFERENCE,
@@ -564,6 +572,7 @@ function parser:parse_unary()
     end
 
     if self:expect(PRE_TOKENS.AMPERSAND) then
+		self:versionError("Clua version 0.1 don't have address")
         local op = self:consume()
         return {
             kind = KINDS.ADDRESS_OF,
@@ -689,7 +698,7 @@ function parser:parse_expression()
         self:consume()
         return {
             kind = KINDS.ARRAY,
-            value = values_of_array
+            values = values_of_array
         }
     end
     return self:parse_cast()
@@ -706,23 +715,18 @@ function parser:parse_call()
     if name == "sizeof" then
         if self:Texpect(__builtin_types) then
             local t = {
-                kind = KINDS.SIZEOF,
-                value = {
-                    kind = KINDS.RAW_TYPE,
-                    value = self:consume().buf
-                }
+                kind = KINDS.RAW_SIZEOF,
+                values = self:parse_variable_types()
             }
             self:CEexpect(PRE_TOKENS.CLOSE_PARENTHESES)
             return t
         end
 
-        self:Eexpect(PRE_TOKENS.NAME)
-
         local t = {
-            kind = KINDS.SIZEOF,
-            value = {
+            kind = KINDS.VAR_SIZEOF,
+            values = {
                 kind = KINDS.VAR_REF,
-                value = self:validate_name(self:consume().buf)
+                values = self:validate_name(self:consume().buf)
             }
         }
         self:CEexpect(PRE_TOKENS.CLOSE_PARENTHESES)
@@ -785,8 +789,14 @@ function parser:parse_function_declaration(name, type, modifiers, qualifiers)
 
     self:consume() -- ')'
 
+	local kind = KINDS.FUNCTION_DECLARATION
+
+	if self:expect(PRE_TOKENS.SEMICOLON) then
+		kind = KINDS.FUNCTION_DECLARATION_PROTOTYPE
+	end
+
     return {
-        kind = KINDS.FUNCTION_DECLARATION,
+        kind = kind,
         callee = name,
         init_args = args,
         return_type = type,
@@ -811,6 +821,7 @@ function parser:parse_struct_init()
         else
             value = self:parse_expression()
         end
+
         table.insert(values, {
             kind = KINDS.STRUCT_INIT_VAR_DECLARATION,
             value = value,
@@ -822,12 +833,13 @@ function parser:parse_struct_init()
         end
     end
 
+	
     if #values == 0 then
         self:error("Struct can't be empty")
     end
-
+	
     self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
-
+	
     return {
         kind = KINDS.STRUCT_INIT,
         values = values
@@ -839,12 +851,12 @@ function parser:parse_assignment()
 
     self:CEexpect(PRE_TOKENS.EQUAL_ASSIGNING)
 
-    local value = self:parse_expression()
+    local values = self:parse_expression()
 
     return {
         kind = KINDS.ASSIGNMENT,
         target = lvalue,
-        value = value
+        values = values
     }
 end
 
@@ -868,20 +880,24 @@ function parser:parse_variable_types()
         local mod = self:consume()
 
         if mod.token == PRE_TOKENS.ASTERISK then
+			self:versionError("Clua version 0.1 don't have pointers")
             table.insert(modifiers, {
                 kind = KINDS.POINTER_MODIFIER
             })
 
         elseif mod.token == PRE_TOKENS.OPEN_BRACKETS then
             local size = 0
-            if not self:expect(PRE_TOKENS.CLOSE_BRACKETS) then
-                size = self:parse_expression()
-            end
+			size = self:parse_expression()
+
+			if size.kind ~= KINDS.LITERAL_INT then
+				self:error(string.format("Arrays can only have const sizes but not %s", size.kind))
+			end
+
             self:CEexpect(PRE_TOKENS.CLOSE_BRACKETS)
 
             table.insert(modifiers, {
                 kind = KINDS.ARRAY_MODIFIER,
-                size = size
+                size = tonumber(size.value),
             })
 
         elseif self:token_in_class(mod, __qualifiers) then
@@ -936,13 +952,15 @@ function parser:parse_variable_types()
 
             table.insert(qualifiers, {
                 kind = KINDS.QUALIFICATOR,
-                value = mod.buf
+                values = mod.buf
             })
         else
-
+			if mod.buf == "const" then
+				self:versionError("Clua version 0.1 don't have const")
+			end
             table.insert(modifiers, {
                 kind = KINDS.MODIFIER,
-                value = mod.buf
+                values = mod.buf
             })
         end
     end
@@ -951,9 +969,7 @@ function parser:parse_variable_types()
         self:error("Variable can't be 'short' and 'long' at the same time")
     end
 
-	if not (type == "void" and modifiers[1] and modifiers[1].kind == KINDS.POINTER_MODIFIER) then
-		self:error("Variable can't be void (only void* ...)")
-	end
+	local is_only_void = type == "void" and not (modifiers[1] and modifiers[1].kind == KINDS.POINTER_MODIFIER)
 
     return {
         type = type,
@@ -962,6 +978,7 @@ function parser:parse_variable_types()
 			long_count = long_count,
 			sign = sign,
 			is_short = is_short,
+			is_only_void = is_only_void
 		},
     }
 end
@@ -969,17 +986,22 @@ end
 function parser:parse_declaration()
     local info = self:parse_variable_types()
 
+	
     if self:expect(PRE_TOKENS.FUNCTION) then
         self:consume()
         local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
         return self:parse_function_declaration(name, info.type, info.modifiers, info.qualifiers), true
     end
 
+	if info.qualifiers.is_only_void then
+		self:error("Variable can't be void (only void* ...)")
+	end
+
     local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
 
     if not self:expect(PRE_TOKENS.EQUAL_ASSIGNING) then
         return {
-            kind = KINDS.NULL_VAR_DECLARATION,
+            kind = KINDS.VAR_DECLARATION_PROTOTYPE,
             name = name,
             type = info.type,
             qualifiers = info.qualifiers,
@@ -988,7 +1010,7 @@ function parser:parse_declaration()
     end
 
     self:consume()
-    local value = self:parse_expression()
+    local values = self:parse_expression()
 
     return {
         kind = KINDS.VAR_DECLARATION,
@@ -996,7 +1018,7 @@ function parser:parse_declaration()
         type = info.type,
         modifiers = info.modifiers,
         qualifiers = info.qualifiers,
-        value = value
+        values = values
     }
 end
 
@@ -1106,7 +1128,7 @@ function parser:parse_struct()
 
 	if self:expect(PRE_TOKENS.SEMICOLON) then
 		return {
-			kind = KINDS.NULL_STRUCT_DECLARATION,
+			kind = KINDS.STRUCT_DECLARATION_PROTOTYPE,
 			name = name,
 		}
 	end
@@ -1121,11 +1143,11 @@ function parser:parse_struct()
 
     while self:Texpect(__types_and_modifiers) do
         local decla_var = self:parse_declaration()
-        if decla_var.kind ~= KINDS.NULL_VAR_DECLARATION then
+        if decla_var.kind ~= KINDS.VAR_DECLARATION_PROTOTYPE then
             self:error("Invalid struct declaration sintax")
         end
 
-        if decla_var.kind == KINDS.NULL_VAR_DECLARATION then
+        if decla_var.kind == KINDS.VAR_DECLARATION_PROTOTYPE then
             decla_var.kind = KINDS.STRUCT_VAR_DECLARATION
 		end
 
@@ -1189,7 +1211,7 @@ function parser:parse_return()
 
     return {
         kind = KINDS.RETURN,
-        value = expression
+        values = expression
     }
 end
 
@@ -1221,7 +1243,9 @@ function parser:parse_statement()
             end -- ";"
             return
         end
-        self:new_scope(info.body)
+		if info.kind == KINDS.FUNCTION_DECLARATION then
+        	self:new_scope(info.body)
+		end
         return
     end
 
@@ -1315,21 +1339,21 @@ function parser:parse_statement()
         return
     end
 
-    if self:expect(PRE_TOKENS.STRUCT) then -- struct 'struct name{type name; type name1;};'
-        self:push_back(self:parse_struct())
-        if self.use_semicolan then
-            self:CEexpect(PRE_TOKENS.SEMICOLON)
-        end -- ";"
-        return
-    end
+    --if self:expect(PRE_TOKENS.STRUCT) then -- struct 'struct name{type name; type name1;};'
+    --    self:push_back(self:parse_struct())
+    --    if self.use_semicolan then
+    --        self:CEexpect(PRE_TOKENS.SEMICOLON)
+    --    end -- ";"
+    --    return
+    --end
 
-    if self:expect(PRE_TOKENS.ENUM) then -- enum 'enum name {name1, name2, name3};'
-        self:push_back(self:parse_enum())
-        if self.use_semicolan then
-            self:CEexpect(PRE_TOKENS.SEMICOLON)
-        end -- ";"
-        return
-    end
+    --if self:expect(PRE_TOKENS.ENUM) then -- enum 'enum name {name1, name2, name3};'
+    --    self:push_back(self:parse_enum())
+    --    if self.use_semicolan then
+    --        self:CEexpect(PRE_TOKENS.SEMICOLON)
+    --    end -- ";"
+    --    return
+    --end
 
     if self:expect(PRE_TOKENS.LINE_COMMENT) then
         self:consume()
