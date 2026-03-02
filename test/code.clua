@@ -21,7 +21,8 @@ functions
 
 *----
 
+
+
 int [2] [2] [2] x;
 char [10] [2] y;
 double [5] [1] x;
-int x = y;

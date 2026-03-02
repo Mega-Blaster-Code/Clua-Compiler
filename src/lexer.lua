@@ -136,7 +136,7 @@ local valid_escape_sequence = {
     ["\\"] = '\\',
     ["'"] = '\'',
     ["\""] = '\"',
-    ["0"] = '\0'
+    ["0"] = '\0',
 }
 
 local function unescape(s)
@@ -250,6 +250,50 @@ function _M.tokenize(file_path, str)
             }
 
             buf = ""
+
+            if __RAW_MODE then
+
+                push_back("{")
+                new_token(buf, PRE_TOKENS.OPEN_BRACKETS)
+
+                while peek() ~= "\"" do
+                    local c = consume()
+
+                    if c == "\\" then
+                        local code = consume()
+                        if not code then
+                            error_gene("Invalid string")
+                        end
+						buf = ""
+						push_back(tostring(string.byte(unescape(c .. code))))
+                        new_token(buf, PRE_TOKENS.NUMBER_INT)
+                    else
+						buf = ""
+						push_back(tostring(string.byte(c)))
+                        new_token(buf, PRE_TOKENS.NUMBER_INT)
+
+                        if not peek() then
+                            error_gene("Invalid string")
+                        end
+						
+                    end
+					buf = ""
+					push_back(", ")
+					new_token(buf, PRE_TOKENS.COMMA)
+                end
+
+                consume()
+
+                buf = ""
+
+                push_back("0")
+                new_token(buf, PRE_TOKENS.NUMBER_INT)
+
+                push_back("}")
+                new_token(buf, PRE_TOKENS.CLOSE_BRACKETS)
+
+                return true
+            end
 
             push_back("[")
             new_token(buf, PRE_TOKENS.OPEN_BRACKETS)
@@ -471,12 +515,12 @@ function _M.tokenize(file_path, str)
                 buf = ""
                 return true
             end
-			
-			if peek() == "/" and peek(1) == "/" then
-				push_back(consume())
+
+            if peek() == "/" and peek(1) == "/" then
+                push_back(consume())
                 push_back(consume())
                 return false
-			end
+            end
 
             push_back(consume())
             return false
@@ -485,7 +529,7 @@ function _M.tokenize(file_path, str)
         if peek() and peek():match("[%(%{%[%)%}%];,%.:&]") then
             if peek() and peek():match(":") then
                 push_back(consume())
-				return false
+                return false
             end
             push_back(consume())
             return false

@@ -10,8 +10,6 @@ local file2io = require("file2io")
 local function start(file_name, tokens)
     local handler = file2io.open(file_name, file2io.modes.write_binary)
 
-	
-
     local out = {}
 
     for i, token in ipairs(tokens) do
@@ -26,11 +24,6 @@ local function start(file_name, tokens)
         end
 
         local quote = ""
-        if t == PRE_TOKENS.STRING_LITERAL then
-            quote = '"'
-        elseif t == PRE_TOKENS.CHAR_LITERAL then
-            quote = "'"
-        end
 
         out[#out + 1] = quote .. token.buf .. quote
 

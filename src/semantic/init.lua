@@ -10,16 +10,18 @@ do
 end
 
 
-_SEMANTIC = {}
+local _M = {}
 
-_SEMANTIC.analyzer = require("semantic.analyzer")
-_SEMANTIC.context = require("semantic.context")
-_SEMANTIC.expressions = require("semantic.expressions")
-_SEMANTIC.literals = require("src.semantic.literals")
-_SEMANTIC.semantic = require("semantic.semantic")
-_SEMANTIC.statements = require("semantic.statements")
-_SEMANTIC.symbols = require("semantic.symbols")
-_SEMANTIC.types = require("semantic.types")
+_SEMANTIC = _M
+
+local analyzer = require("semantic.analyzer")
+local context = require("semantic.context")
+local expressions = require("semantic.expressions")
+local literals = require("src.semantic.literals")
+local semantic = require("semantic.semantic")
+local statements = require("semantic.statements")
+local symbols = require("semantic.symbols")
+local types = require("semantic.types")
 
 local DECLARATIONS_KINDS = {
 	[KINDS.FUNCTION_DECLARATION_PROTOTYPE] = true,
@@ -63,7 +65,7 @@ end
 local semantic = {}
 semantic.__index = semantic
 
-function _SEMANTIC.new(file_path, AST_TREE, ARGUMENTS)
+function _M.new(file_path, AST_TREE, ARGUMENTS)
 	local self = setmetatable({}, semantic)
 
 	self.file_path = file_path
@@ -73,21 +75,22 @@ function _SEMANTIC.new(file_path, AST_TREE, ARGUMENTS)
 	return self
 end
 
-
-local _SEMANTIC = _SEMANTIC
-_G._SEMANTIC = nil
-
 function semantic:start()
 	for i = 1, #self.AST do
 		local node = self.AST[i]
 		if isDeclaration(node.kind, VAR_DECLARATIONS_KINDS) then
-			local old = _SEMANTIC.types.build(node)
-			
-			print(_SEMANTIC.types.sizeof(old))
+			local old = types.build(node)
+
+			print(types.sizeof(old))
 			print("======")
 		end
 	end
 	
+	
 end
 
-return _SEMANTIC
+local _SEMANTIC = _SEMANTIC
+
+_G._SEMANTIC = nil
+
+return _M
