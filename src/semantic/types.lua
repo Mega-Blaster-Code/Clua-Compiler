@@ -54,6 +54,7 @@ local TKINDS = {
 	POINTER = "_T_POINTER",
 	ARRAY = "_T_ARRAY",
 	STRUCT = "_T_STRUCT",
+	FUNCTION = "_T_FUNCTION",
 }
 
 function _M.isNumeric(var)
@@ -86,6 +87,7 @@ function _M.base(var, numeric, sign)
 		volatile = false,
 		sign = sign,
 		const = false,
+		name = var.name,
 	}
 end
 
@@ -115,6 +117,28 @@ function _M.struct(var)
 	}
 end
 
+function _M._function(var)
+	local b = _M.base(var, _M.getNumeric(var), var.qualifiers.sign)
+	local t = {
+		kind = TKINDS.FUNCTION,
+		type = var.type,
+		numeric = b.numeric,
+		volatile = b.volatile,
+		sign = b.sign,
+		const = b.const,
+		name = var.callee,
+		prototype = false,
+		args = {}
+	}
+
+	for i, v in ipairs(var.args) do
+		t.args[i] = _M.build(v)
+	end
+
+
+	return t
+end
+
 function _M.const(inner)
 	inner.const = true
 end
@@ -127,7 +151,17 @@ function _M.build(var)
 	local modifiers = var.modifiers
 	local qualifiers = var.qualifiers
 
-	local t = _M.base(var, _M.getNumeric(var), qualifiers.sign)
+	local t
+
+	if var.kind == KINDS.FUNCTION_DECLARATION then
+		t = _M._function(var)
+		t.prototype = false
+	elseif var.kind == KINDS.FUNCTION_DECLARATION_PROTOTYPE then
+		t = _M._function(var)
+		t.prototype = true
+	else
+		t = _M.base(var, _M.getNumeric(var), qualifiers.sign)
+	end
 
 	for i = #var.modifiers, 1, -1 do
 		local m = var.modifiers[i]
@@ -192,6 +226,10 @@ function _M.isStruct(t)
 	return t.kind == TKINDS.STRUCT
 end
 
+function _M.isFunction(t)
+	return t.kind == TKINDS.FUNCTION
+end
+
 function _M.isBase(t)
 	return t.kind == TKINDS.BASE
 end
@@ -228,11 +266,11 @@ function _M.lowEquals(a,b)
 	end
 
 	if _M.isArray(a) then
-		return a.const == b.const and _M.equals(b.of, a.of)
+		return a.const == b.const and _M.lowEquals(b.of, a.of)
 	end
 end
 
-function _M.canAssign(to, from) -- (very restrict, needs cast for everything)
+function _M.canAssign(to, from)
 	if not _M.equals(to, from) then
 		return false
 	end
@@ -291,7 +329,7 @@ end
 
 function _M.sizeof(t)
 	if t.kind == TKINDS.POINTER then
-		return types_sizes.void[t.numeric or NUMERIC_DEFAULT]
+		return POINTER_SIZE
 	end
 
 	if t.kind == TKINDS.ARRAY then
@@ -303,8 +341,12 @@ function _M.sizeof(t)
 	if _M.isBase(t) then
 		return types_sizes[t.type][t.numeric or NUMERIC_DEFAULT]
 	end
+
+	if _M.isFunction(t) then
+		__SEMANTIC.ARGUMENTS:ERROR("Can't get sizeof function")
+	end
 	
-	error("Unknow type " .. tostring(t.type))
+	__SEMANTIC.ARGUMENTS:ERROR(string.format("Can't get sizeof [%s]",tostring(t.type)))
 end
 
 return _M

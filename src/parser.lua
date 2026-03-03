@@ -772,11 +772,12 @@ function parser:parse_function_declaration(name, type, modifiers, qualifiers)
         end
 
         local var = self:parse_declaration()
+		
+		if var.kind ~= KINDS.VAR_DECLARATION_PROTOTYPE then
+			self:error("Invalid parameter for declaration of function")
+		end
 
-        table.insert(args, {
-            type = var.type,
-            modifiers = var.modifiers
-        })
+        table.insert(args, var)
 
         if var.is_function then
             self:error("Can't declare a function inside a function arguments")
@@ -798,10 +799,10 @@ function parser:parse_function_declaration(name, type, modifiers, qualifiers)
     return {
         kind = kind,
         callee = name,
-        init_args = args,
-        return_type = type,
-        return_modifiers = modifiers,
-        return_qualifiers = qualifiers,
+        args = args,
+        type = type,
+        modifiers = modifiers,
+        qualifiers = qualifiers,
         body = {}
     }
 end

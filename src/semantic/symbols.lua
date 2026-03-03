@@ -43,12 +43,12 @@ function SCOPE:declareVariable(name, t)
 end
 
 function _M.pushScope(scope)
-	_M.scopes[#_M.scopes + 1] = scope
+	_M.scopes[#_M.scopes + 1] = scope or _M.newScope()
 end
 
 function _M.popScope()
 	if #_M.scopes <= 0 then
-		return false
+		__SEMANTIC.ARGUMENTS:ERROR("Attempt to close global scope")
 	end
 	_M.scopes[#_M.scopes] = nil
 	return true
@@ -75,7 +75,7 @@ end
 
 function _M.declareVariable(name, t)
 	if _M.findVariableInLocalScope(name) then
-		return false
+		__SEMANTIC.ARGUMENTS:ERROR(string.format("Variable \"%s\" is already declared in local scope", name))
 	end
 
 	local local_scope = _M.getLocalScope()
@@ -86,10 +86,10 @@ end
 
 function _M.declareFunction(name, t)
 	if #_M.scopes > 1 then
-		return false
+		__SEMANTIC.ARGUMENTS:ERROR(string.format("Can't define function inside of a scope depth %d", #_M.scopes))
 	end
 	if _M.functions[name] then
-		return false
+		__SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" is already declared", name))
 	end
 	_M.functions[name] = t
 	return true
