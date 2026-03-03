@@ -20,6 +20,10 @@ functions
 
 
 *----
-void function test(int x)
-	
+
+int x;
+
+
+for (int i = 0; i < x; i = i + 1) do
+	int x;
 end

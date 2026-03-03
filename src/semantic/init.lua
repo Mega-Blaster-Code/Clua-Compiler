@@ -22,6 +22,13 @@ local semantic = require("semantic.semantic")
 local statements = require("semantic.statements")
 local symbols = require("semantic.symbols")
 local types = require("semantic.types")
+
+_M.analyzer = analyzer
+_M.expressions = expressions
+_M.semantic = semantic
+_M.symbols = symbols
+_M.types = types
+
 local DECLARATIONS_KINDS = {
 	[KINDS.FUNCTION_DECLARATION_PROTOTYPE] = true,
 	[KINDS.FUNCTION_DECLARATION] = true,
@@ -70,7 +77,7 @@ function _M.new(file_path, AST_TREE, ARGUMENTS)
 	local self = setmetatable({}, semantic)
 
 	self.file_path = file_path
-	self.AST = AST_TREE.body
+	self.AST = AST_TREE
 	self.ARGUMENTS = ARGUMENTS
 
 	_s.ARGUMENTS = ARGUMENTS
@@ -79,16 +86,7 @@ function _M.new(file_path, AST_TREE, ARGUMENTS)
 end
 
 function semantic:start()
-	symbols.pushScope()
-	for i = 1, #self.AST do
-		local node = self.AST[i]
-		if isDeclaration(node.kind, VAR_DECLARATIONS_KINDS) then
-			local old = types.build(node)
-			symbols.declareVariable(old.name, old)
-			print("======")
-		end
-	end
-	symbols.popScope()
+	analyzer.analyzeBlock(self.AST)
 end
 
 local _SEMANTIC = _SEMANTIC

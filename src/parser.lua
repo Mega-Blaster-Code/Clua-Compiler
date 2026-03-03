@@ -23,8 +23,8 @@ local __types = {
     [PRE_TOKENS.CHAR] = true,
     [PRE_TOKENS.DOUBLE] = true,
     [PRE_TOKENS.BOOL] = true,
-    [PRE_TOKENS.VOID] = true,
-    --[PRE_TOKENS.NAME] = true -- structs
+    [PRE_TOKENS.VOID] = true
+    -- [PRE_TOKENS.NAME] = true -- structs
 }
 
 local __builtin_types = {
@@ -51,8 +51,8 @@ local __modifiers = {
 local __qualifiers = {
     [PRE_TOKENS.LONG] = true,
     [PRE_TOKENS.SHORT] = true,
-	[PRE_TOKENS.SIGNED] = true,
-	[PRE_TOKENS.UNSIGNED] = true,
+    [PRE_TOKENS.SIGNED] = true,
+    [PRE_TOKENS.UNSIGNED] = true
 }
 
 local __types_and_modifiers = {
@@ -101,7 +101,7 @@ local __math_level_4 = {
 
 local __math_level_5 = {
     [PRE_TOKENS.DIVIDE] = true,
-	[PRE_TOKENS.INT_DIVIDE] = true,
+    [PRE_TOKENS.INT_DIVIDE] = true,
     [PRE_TOKENS.ASTERISK] = true,
     [PRE_TOKENS.MODULE] = true
 }
@@ -136,7 +136,6 @@ function _M.new(file_path, ARGUMENTS, tokens)
 
     self.replacements = {}
 
-
     self.line = 1
     self.column = 1
 
@@ -157,7 +156,8 @@ function _M.new(file_path, ARGUMENTS, tokens)
 end
 
 function parser:versionError(msg)
-	self:error(string.format("The \"%s\" version is incompatible with the sintax used in the script!\n%s\n", _M.VERSION, msg))
+    self:error(string.format("The \"%s\" version is incompatible with the sintax used in the script!\n%s\n", _M.VERSION,
+        msg))
 end
 
 function parser:__line_info()
@@ -181,7 +181,7 @@ function parser:validate_name(name)
 end
 
 local function getTokens(self)
-	local line = self.line
+    local line = self.line
     local column = self.column
 
     local left_off = 10
@@ -223,13 +223,14 @@ local function getTokens(self)
         end)
     end
 
-	return tokens
+    return tokens
 end
 
 local function buildMessage(self, msg, er, tokens)
-	local message = {}
+    local message = {}
 
-    message[#message + 1] = (string.format("%s ['%s'] %sline:%s column:%s%s\n", er, self.file_path, color8.sfcolor(50, 150, 255), self.line, self.column, color8.sfcolor(200, 200, 200)))
+    message[#message + 1] = (string.format("%s ['%s'] %sline:%s column:%s%s\n", er, self.file_path,
+        color8.sfcolor(50, 150, 255), self.line, self.column, color8.sfcolor(200, 200, 200)))
     message[#message + 1] = (msg)
     message[#message + 1] = ("\n\n")
 
@@ -276,7 +277,7 @@ end
 function parser:error(msg, raise)
     local tokens = getTokens(self)
 
-	local message = buildMessage(self, msg, "SINTAX ERROR", tokens)
+    local message = buildMessage(self, msg, "SINTAX ERROR", tokens)
 
     self.ARGUMENTS:ERROR(message)
 end
@@ -284,7 +285,7 @@ end
 function parser:warn(msg, raise)
     local tokens = getTokens(self)
 
-	local message = buildMessage(self, msg, "SINTAX WARNING", tokens)
+    local message = buildMessage(self, msg, "SINTAX WARNING", tokens)
 
     self.ARGUMENTS:WARN(message)
 end
@@ -292,7 +293,7 @@ end
 function parser:notification(msg, raise)
     local tokens = getTokens(self)
 
-	local message = buildMessage(self, msg, "SINTAX INFO", tokens)
+    local message = buildMessage(self, msg, "SINTAX INFO", tokens)
 
     self.ARGUMENTS:INFO(message)
 end
@@ -523,7 +524,7 @@ function parser:parse_postfix()
             }
 
         elseif self:expect(PRE_TOKENS.DOT) then
-			self:versionError("Clua version 0.1 don't have structs")
+            self:versionError("Clua version 0.1 don't have structs")
             self:consume()
             local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
 
@@ -533,7 +534,7 @@ function parser:parse_postfix()
             }
 
         elseif self:expect(PRE_TOKENS.POINTER) then
-			self:versionError("Clua version 0.1 don't have pointers")
+            self:versionError("Clua version 0.1 don't have pointers")
             self:consume()
             local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
             local_base.node = {
@@ -562,7 +563,7 @@ function parser:parse_unary()
     end
 
     if self:expect(PRE_TOKENS.ASTERISK) then
-		self:versionError("Clua version 0.1 don't have pointers")
+        self:versionError("Clua version 0.1 don't have pointers")
         local op = self:consume()
         return {
             kind = KINDS.POINTER_DEREFERENCE,
@@ -572,7 +573,7 @@ function parser:parse_unary()
     end
 
     if self:expect(PRE_TOKENS.AMPERSAND) then
-		self:versionError("Clua version 0.1 don't have address")
+        self:versionError("Clua version 0.1 don't have address")
         local op = self:consume()
         return {
             kind = KINDS.ADDRESS_OF,
@@ -697,8 +698,11 @@ function parser:parse_expression()
         self:Eexpect(PRE_TOKENS.CLOSE_BRACKETS)
         self:consume()
         return {
-            kind = KINDS.ARRAY,
-            values = values_of_array
+            kind = KINDS.EXPRESSION,
+            values = {
+                kind = KINDS.ARRAY,
+                values = values_of_array
+            }
         }
     end
     return self:parse_cast()
@@ -772,10 +776,10 @@ function parser:parse_function_declaration(name, type, modifiers, qualifiers)
         end
 
         local var = self:parse_declaration()
-		
-		if var.kind ~= KINDS.VAR_DECLARATION_PROTOTYPE then
-			self:error("Invalid parameter for declaration of function")
-		end
+
+        if var.kind ~= KINDS.VAR_DECLARATION_PROTOTYPE then
+            self:error("Invalid parameter for declaration of function")
+        end
 
         table.insert(args, var)
 
@@ -790,11 +794,11 @@ function parser:parse_function_declaration(name, type, modifiers, qualifiers)
 
     self:consume() -- ')'
 
-	local kind = KINDS.FUNCTION_DECLARATION
+    local kind = KINDS.FUNCTION_DECLARATION
 
-	if self:expect(PRE_TOKENS.SEMICOLON) then
-		kind = KINDS.FUNCTION_DECLARATION_PROTOTYPE
-	end
+    if self:expect(PRE_TOKENS.SEMICOLON) then
+        kind = KINDS.FUNCTION_DECLARATION_PROTOTYPE
+    end
 
     return {
         kind = kind,
@@ -834,13 +838,12 @@ function parser:parse_struct_init()
         end
     end
 
-	
     if #values == 0 then
         self:error("Struct can't be empty")
     end
-	
+
     self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
-	
+
     return {
         kind = KINDS.STRUCT_INIT,
         values = values
@@ -855,7 +858,7 @@ function parser:parse_assignment()
     local values = self:parse_expression()
 
     return {
-        kind = KINDS.ASSIGNMENT,
+        kind = KINDS.VAR_ASSIGNMENT,
         target = lvalue,
         values = values
     }
@@ -875,30 +878,30 @@ function parser:parse_variable_types()
 
     local long_count = 0
     local is_short = false
-	local sign = "signed"
+    local sign = "signed"
 
     while self:Texpect(__modifiers) do
         local mod = self:consume()
 
         if mod.token == PRE_TOKENS.ASTERISK then
-			self:versionError("Clua version 0.1 don't have pointers")
+            self:versionError("Clua version 0.1 don't have pointers")
             table.insert(modifiers, {
                 kind = KINDS.POINTER_MODIFIER
             })
 
         elseif mod.token == PRE_TOKENS.OPEN_BRACKETS then
             local size = 0
-			size = self:parse_expression()
+            size = self:parse_expression()
 
-			if size.kind ~= KINDS.LITERAL_INT then
-				self:error(string.format("Arrays can only have const sizes but not %s", size.kind))
-			end
+            if size.kind ~= KINDS.LITERAL_INT then
+                self:error(string.format("Arrays can only have const sizes but not %s", size.kind))
+            end
 
             self:CEexpect(PRE_TOKENS.CLOSE_BRACKETS)
 
             table.insert(modifiers, {
                 kind = KINDS.ARRAY_MODIFIER,
-                size = tonumber(size.value),
+                size = tonumber(size.value)
             })
 
         elseif self:token_in_class(mod, __qualifiers) then
@@ -933,22 +936,22 @@ function parser:parse_variable_types()
                 end
                 is_short = true
             elseif mod.token == PRE_TOKENS.SIGNED or mod.token == PRE_TOKENS.UNSIGNED then
-				
+
                 if not self:str_in_class(raw_type, {
-					[PRE_TOKENS.INT] = true,
-					[PRE_TOKENS.CHAR] = true,
+                    [PRE_TOKENS.INT] = true,
+                    [PRE_TOKENS.CHAR] = true
                 }) then
                     self:error(string.format("Variable can't be 'signed' and '%s'", type))
                 end
-				for i = 1, #qualifiers do
-					local q = qualifiers[i]
-					print("KINDS", q.value, mod.buf)
-					if q.value == "signed" or q.value == "unsigned" then
-						self:error(string.format("Variable can't be '%s' and '%s'", q.value, mod.buf))
-					end
-				end
+                for i = 1, #qualifiers do
+                    local q = qualifiers[i]
+                    print("KINDS", q.value, mod.buf)
+                    if q.value == "signed" or q.value == "unsigned" then
+                        self:error(string.format("Variable can't be '%s' and '%s'", q.value, mod.buf))
+                    end
+                end
 
-				sign = mod.buf
+                sign = mod.buf
             end
 
             table.insert(qualifiers, {
@@ -956,9 +959,9 @@ function parser:parse_variable_types()
                 values = mod.buf
             })
         else
-			if mod.buf == "const" then
-				self:versionError("Clua version 0.1 don't have const")
-			end
+            if mod.buf == "const" then
+                self:versionError("Clua version 0.1 don't have const")
+            end
             table.insert(modifiers, {
                 kind = KINDS.MODIFIER,
                 values = mod.buf
@@ -970,33 +973,32 @@ function parser:parse_variable_types()
         self:error("Variable can't be 'short' and 'long' at the same time")
     end
 
-	local is_only_void = type == "void" and not (modifiers[1] and modifiers[1].kind == KINDS.POINTER_MODIFIER)
+    local is_only_void = type == "void" and not (modifiers[1] and modifiers[1].kind == KINDS.POINTER_MODIFIER)
 
     return {
         type = type,
         modifiers = modifiers,
         qualifiers = {
-			long_count = long_count,
-			sign = sign,
-			is_short = is_short,
-			is_only_void = is_only_void
-		},
+            long_count = long_count,
+            sign = sign,
+            is_short = is_short,
+            is_only_void = is_only_void
+        }
     }
 end
 
 function parser:parse_declaration()
     local info = self:parse_variable_types()
 
-	
     if self:expect(PRE_TOKENS.FUNCTION) then
         self:consume()
         local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
         return self:parse_function_declaration(name, info.type, info.modifiers, info.qualifiers), true
     end
 
-	if info.qualifiers.is_only_void then
-		self:error("Variable can't be void (only void* ...)")
-	end
+    if info.qualifiers.is_only_void then
+        self:error("Variable can't be void (only void* ...)")
+    end
 
     local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
 
@@ -1091,7 +1093,7 @@ function parser:parse_extern()
         kind = KINDS.EXTERN,
         raw = raw_c
     }
-end 
+end
 
 function parser:parse_for()
     self:consume() -- "for"
@@ -1127,12 +1129,12 @@ function parser:parse_struct()
 
     local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
 
-	if self:expect(PRE_TOKENS.SEMICOLON) then
-		return {
-			kind = KINDS.STRUCT_DECLARATION_PROTOTYPE,
-			name = name,
-		}
-	end
+    if self:expect(PRE_TOKENS.SEMICOLON) then
+        return {
+            kind = KINDS.STRUCT_DECLARATION_PROTOTYPE,
+            name = name
+        }
+    end
 
     self:CEexpect(PRE_TOKENS.OPEN_BRACES)
 
@@ -1150,7 +1152,7 @@ function parser:parse_struct()
 
         if decla_var.kind == KINDS.VAR_DECLARATION_PROTOTYPE then
             decla_var.kind = KINDS.STRUCT_VAR_DECLARATION
-		end
+        end
 
         table.insert(variables, decla_var)
         self:CEexpect(PRE_TOKENS.SEMICOLON)
@@ -1183,11 +1185,11 @@ function parser:parse_enum()
         local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
 
         variables[#variables + 1] = name
-		if self:expect(PRE_TOKENS.COMMA) then
-        	self:CEexpect(PRE_TOKENS.COMMA)
-		else
-			break
-		end
+        if self:expect(PRE_TOKENS.COMMA) then
+            self:CEexpect(PRE_TOKENS.COMMA)
+        else
+            break
+        end
     end
 
     self:CEexpect(PRE_TOKENS.CLOSE_BRACES)
@@ -1244,9 +1246,9 @@ function parser:parse_statement()
             end -- ";"
             return
         end
-		if info.kind == KINDS.FUNCTION_DECLARATION then
-        	self:new_scope(info.body)
-		end
+        if info.kind == KINDS.FUNCTION_DECLARATION then
+            self:new_scope(info.body)
+        end
         return
     end
 
@@ -1309,7 +1311,8 @@ function parser:parse_statement()
             self:error(string.format("duplicate 'else' in 'if' statement"))
         end
         if_token._else = {}
-        self:new_scope(if_token._else)
+        if_token._else.body = {}
+        self:new_scope(if_token._else.body)
         return
     end
 
@@ -1340,21 +1343,21 @@ function parser:parse_statement()
         return
     end
 
-    --if self:expect(PRE_TOKENS.STRUCT) then -- struct 'struct name{type name; type name1;};'
+    -- if self:expect(PRE_TOKENS.STRUCT) then -- struct 'struct name{type name; type name1;};'
     --    self:push_back(self:parse_struct())
     --    if self.use_semicolan then
     --        self:CEexpect(PRE_TOKENS.SEMICOLON)
     --    end -- ";"
     --    return
-    --end
+    -- end
 
-    --if self:expect(PRE_TOKENS.ENUM) then -- enum 'enum name {name1, name2, name3};'
+    -- if self:expect(PRE_TOKENS.ENUM) then -- enum 'enum name {name1, name2, name3};'
     --    self:push_back(self:parse_enum())
     --    if self.use_semicolan then
     --        self:CEexpect(PRE_TOKENS.SEMICOLON)
     --    end -- ";"
     --    return
-    --end
+    -- end
 
     if self:expect(PRE_TOKENS.LINE_COMMENT) then
         self:consume()

@@ -81,5 +81,4 @@ end
 local semantic_handler = semantic.new(file_path, AST_TREE, ARGUMENTS)
 semantic_handler:start()
 
-
 io.stderr:write(string.format("%sSUCESS%s  compiled to file %s\"%s\"%s", color8.sfcolor(0, 255, 50), color8.sfcolor(200, 200, 200), color8.sfcolor(100, 150, 255), "test.out", color8.sfcolor(200, 200, 200)))

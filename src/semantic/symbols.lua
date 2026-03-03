@@ -9,8 +9,8 @@ do
     AST_SPEC, KINDS = info[1], info[2]
 end
 
-local __SEMANTIC = _SEMANTIC
-local types = __SEMANTIC.types
+local _SEMANTIC = _SEMANTIC
+
 local _M = {}
 
 _M.scopes = {}
@@ -48,7 +48,7 @@ end
 
 function _M.popScope()
 	if #_M.scopes <= 0 then
-		__SEMANTIC.ARGUMENTS:ERROR("Attempt to close global scope")
+		_SEMANTIC.ARGUMENTS:ERROR("Attempt to close global scope")
 	end
 	_M.scopes[#_M.scopes] = nil
 	return true
@@ -75,7 +75,7 @@ end
 
 function _M.declareVariable(name, t)
 	if _M.findVariableInLocalScope(name) then
-		__SEMANTIC.ARGUMENTS:ERROR(string.format("Variable \"%s\" is already declared in local scope", name))
+		_SEMANTIC.ARGUMENTS:ERROR(string.format("Variable \"%s\" is already declared in local scope", name))
 	end
 
 	local local_scope = _M.getLocalScope()
@@ -86,10 +86,10 @@ end
 
 function _M.declareFunction(name, t)
 	if #_M.scopes > 1 then
-		__SEMANTIC.ARGUMENTS:ERROR(string.format("Can't define function inside of a scope depth %d", #_M.scopes))
+		_SEMANTIC.ARGUMENTS:ERROR(string.format("Can't define function inside of a scope depth %d", #_M.scopes))
 	end
 	if _M.functions[name] then
-		__SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" is already declared", name))
+		_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" is already declared", name))
 	end
 	_M.functions[name] = t
 	return true

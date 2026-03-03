@@ -9,7 +9,7 @@ do
     AST_SPEC, KINDS = info[1], info[2]
 end
 
-local __SEMANTIC = _SEMANTIC
+local _SEMANTIC = _SEMANTIC
 local _M = {}
 
 
@@ -343,10 +343,10 @@ function _M.sizeof(t)
 	end
 
 	if _M.isFunction(t) then
-		__SEMANTIC.ARGUMENTS:ERROR("Can't get sizeof function")
+		_SEMANTIC.ARGUMENTS:ERROR("Can't get sizeof function")
 	end
 	
-	__SEMANTIC.ARGUMENTS:ERROR(string.format("Can't get sizeof [%s]",tostring(t.type)))
+	_SEMANTIC.ARGUMENTS:ERROR(string.format("Can't get sizeof [%s]",tostring(t.type)))
 end
 
 return _M
