@@ -9,6 +9,8 @@ do
     AST_SPEC, KINDS = info[1], info[2]
 end
 
+local types = require("semantic.types")
+
 local _SEMANTIC = _SEMANTIC
 
 local _M = {}
@@ -26,10 +28,11 @@ function _M.newScope(name)
 	local self = setmetatable({}, SCOPE)
 	
 	self.name = name or "__SCOPE" .. _n_of_scope
-
-	print("SCOPE NAME", "\"" .. self.name .. "\"")
 	
 	_n_of_scope = _n_of_scope + 1
+
+	self.is_loop = false
+	self.is_function = false
 
 	self.variables = {}
 
@@ -47,12 +50,15 @@ end
 function _M.pushScope(scope, name)
 	local s = scope or _M.newScope(name)
 	_M.scopes[#_M.scopes + 1] = s
+	print("PUSH", s.name)
+	return s
 end
 
 function _M.popScope()
 	if #_M.scopes <= 0 then
 		_SEMANTIC.ARGUMENTS:ERROR("Attempt to close global scope")
 	end
+	print("POP", _M.scopes[#_M.scopes].name)
 	_M.scopes[#_M.scopes] = nil
 	return true
 end
@@ -93,6 +99,8 @@ function _M.declareFunction(name, t)
 	end
 	local f = _M.functions[name]
 
+	if f then
+
 		if f.prototype and t.prototype then
 			_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" has two prototypes", name))
 		end
@@ -101,12 +109,29 @@ function _M.declareFunction(name, t)
 			_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" is already declared", name))
 		end
 
-		_M.functions[name] = t
-	return true
+		if f.prototype then
+			if not types.lowEquals(f, t) then
+				_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" prototype don't match declaration", name))
+			end
+		end
+
+	end
+
+	_M.functions[name] = t
 end
 
 function _M.findFunction(name)
 	return _M.functions[name]
+end
+
+function _M.ancestralScopeIs()
+	for i = #_M.scopes, 1, -1 do
+		local scope = _M.scopes[i]
+		if scope.is_loop or scope.is_function then
+			return scope
+		end
+	end
+	return nil
 end
 
 return _M

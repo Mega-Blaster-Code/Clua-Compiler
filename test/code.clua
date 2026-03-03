@@ -23,6 +23,4 @@ functions
 
 int x = 0;
 
-void function main();
-
-void function main();
+x = 10;

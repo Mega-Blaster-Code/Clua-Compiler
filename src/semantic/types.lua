@@ -128,11 +128,11 @@ function _M._function(var)
 		const = b.const,
 		name = var.callee,
 		prototype = false,
-		--args = {}
+		args = {} -- internal use only
 	}
 
 	for i, v in ipairs(var.args) do
-		--t.args[i] = _M.build(v)
+		t.args[i] = _M.build(v)
 	end
 
 
@@ -264,14 +264,42 @@ function _M.lowEquals(a,b)
 	if _M.isBase(a) then
 		return a.type == b.type and a.numeric == b.numeric and a.sign == b.sign
 	end
-
+	
 	if _M.isPointer(a) then
 		return a.const == b.const and _M.lowEquals(a.to, b.to)
 	end
-
+	
 	if _M.isArray(a) then
 		return a.const == b.const and _M.lowEquals(b.of, a.of)
 	end
+
+	--[[
+		kind = TKINDS.FUNCTION,
+		type = var.type,
+		numeric = b.numeric,
+		volatile = b.volatile,
+		sign = b.sign,
+		const = b.const,
+		name = var.callee,
+		prototype = false,
+		args = {}
+	]]
+
+	if _M.isFunction(a) then
+		if #a.args ~= #b.args then
+			return false
+		end
+
+		for i, argA in ipairs(a.args) do
+			local argB = b.args[i]
+			local r = _M.lowEquals(argA, argB)
+			if not r then
+				return false
+			end
+		end
+		return a.type == b.type and a.numeric == b.numeric and a.sign == b.sign and a.name == b.name
+	end
+	
 end
 
 function _M.canAssign(to, from)

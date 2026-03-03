@@ -86,7 +86,7 @@ function _M.new(file_path, AST_TREE, ARGUMENTS)
 end
 
 function semantic:start()
-	analyzer.analyzeBlock(self.AST)
+	analyzer.analyze(self.AST)
 end
 
 local _SEMANTIC = _SEMANTIC

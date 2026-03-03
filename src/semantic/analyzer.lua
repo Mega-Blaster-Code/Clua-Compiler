@@ -52,33 +52,40 @@ local symbols = require("semantic.symbols")
 
 local _M = {}
 
-function _M.analyzeIf(node)
-    print("IF")
-    -- analyze expression
+function _M.analyzeProgram(node)
+	_M.analyzeBlock(node.body)
+end
 
-    _M.analyzeBlock(node)
+function _M.analyzeIf(node)
+
+    _M.analyzeBlock(node.body)
 
     if node._elseif then
         for i, lnode in ipairs(node._elseif) do
-            -- analyze expression
-            _M.analyzeBlock(lnode)
+            _M.analyzeBlock(lnode.body)
         end
     end
 
     if node._else then
-        _M.analyzeBlock(node._else)
+        _M.analyzeBlock(node._else.body)
     end
 end
 
 function _M.analyzeWhile(node)
     -- analyze expression
 
-    _M.analyzeBlock(node, "WHI" .. operations)
+    local _scope = symbols.pushScope()
+	_scope.is_loop = true
+
+	_M.analyzeLocalBlock(node.body)
+
+	symbols.popScope()
 end
 
 function _M.analyzeFor(node)
 	
-	symbols.pushScope(nil, "FOR" .. operations)
+	local _scope = symbols.pushScope()
+	_scope.is_loop = true
 	
 	_M.analyze(node.init)
 
@@ -86,19 +93,19 @@ function _M.analyzeFor(node)
 
 	_M.analyze(node.step)
 
-	_M.analyzeLocalBlock(node)
+	_M.analyzeLocalBlock(node.body)
 
 	symbols.popScope()
 end
 
 function _M.analyzeBreak(node)
-	local local_scope = symbols.getLocalScope()
+	local scope = symbols.ancestralScopeIs()
 
-	local name_sub = local_scope.name:sub(1, 3)
-
-	if name_sub ~= "FOR" and name_sub ~= "WHI" then
+	if not scope or not scope.is_loop then
 		_SEMANTIC.ARGUMENTS:ERROR("Can't use 'break' outside a for or while loop")
 	end
+
+	print(scope.is_loop, inspect(scope))
 end
 
 function _M.analyzeFunction(node)
@@ -106,17 +113,18 @@ function _M.analyzeFunction(node)
 	local t = types.build(node)
 	local base = types.getBaseRoot(t)
 
+	symbols.declareFunction(base.name, t)
+
 	if base.prototype then
 		return
 	end
 
-	symbols.declareFunction(base.name, t)
-	
     print("FUNCTION", base.name)
 	
 	print(inspect(base))
 
-	symbols.pushScope(nil, "FUN" .. operations)
+	local _scope = symbols.pushScope()
+	_scope.is_function = true
 
 	for i, lnode in ipairs(node.args) do
 		_M.analyze(lnode)
@@ -124,10 +132,17 @@ function _M.analyzeFunction(node)
 
 	-- analyze expression
 
-	_M.analyzeLocalBlock(node)
+	_M.analyzeLocalBlock(node.body)
 
 	symbols.popScope()
 
+end
+
+function _M.analyzeReturn(node)
+	local scope = symbols.ancestralScopeIs()
+	if not scope or not scope.is_function then
+		_SEMANTIC.ARGUMENTS:ERROR("Can't use 'return' outside a function")
+	end
 end
 
 function _M.analyzeDeclaration(node)
@@ -138,7 +153,13 @@ function _M.analyzeDeclaration(node)
 end
 
 function _M.analyzeAssignment(node)
-	local var = symbols.findVariable(node.name)
+	local l_value
+	local r_value
+	--local var = symbols.findVariable(node.name)
+
+	--if not var then
+	--	_SEMANTIC.ARGUMENTS:ERROR("Can't assign to a undeclared variable")
+	--end
 end
 
 local ANALYZER_BUILD = {
@@ -151,6 +172,9 @@ local ANALYZER_BUILD = {
     [KINDS.WHILE] = _M.analyzeWhile,
 	[KINDS.FOR] = _M.analyzeFor,
 	[KINDS.BREAK] = _M.analyzeBreak,
+	[KINDS.RETURN] = _M.analyzeReturn,
+	[KINDS.VOID_RETURN] = _M.analyzeReturn,
+	[KINDS.PROGRAM] = _M.analyzeProgram,
 }
 
 function _M.analyze(node)
@@ -159,14 +183,18 @@ function _M.analyze(node)
 
     local analyzer = ANALYZER_BUILD[node.kind]
 
+	if not analyzer then
+		_SEMANTIC.ARGUMENTS:ERROR(string.format("Kind %s was unexpected", tostring(node.kind)))
+	end
+
     analyzer(node)
 end
 
 function _M.analyzeLocalBlock(node)
-	for i, lnode in ipairs(node.body) do
+	for i, lnode in ipairs(node) do
         _M.analyze(lnode)
-        if i ~= #node.body then
-            print("=====")
+        if i ~= #node then
+
         end
     end
 end

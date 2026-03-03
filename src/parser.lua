@@ -862,8 +862,8 @@ function parser:parse_assignment()
 
     return {
         kind = KINDS.VAR_ASSIGNMENT,
-        target = lvalue,
-        values = values
+        lvalue = lvalue,
+        rvalue = values
     }
 end
 
