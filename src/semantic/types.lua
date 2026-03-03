@@ -128,11 +128,11 @@ function _M._function(var)
 		const = b.const,
 		name = var.callee,
 		prototype = false,
-		args = {}
+		--args = {}
 	}
 
 	for i, v in ipairs(var.args) do
-		t.args[i] = _M.build(v)
+		--t.args[i] = _M.build(v)
 	end
 
 
@@ -211,6 +211,10 @@ function _M.getBaseRoot(t)
 
     if t.kind == TKINDS.ARRAY then
         return _M.getBaseRoot(t.of)
+    end
+
+	if t.kind == TKINDS.FUNCTION then
+        return t
     end
 end
 

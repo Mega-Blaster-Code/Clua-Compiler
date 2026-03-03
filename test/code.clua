@@ -21,9 +21,8 @@ functions
 
 *----
 
-int x;
+int x = 0;
 
+void function main();
 
-for (int i = 0; i < x; i = i + 1) do
-	int x;
-end
+void function main();

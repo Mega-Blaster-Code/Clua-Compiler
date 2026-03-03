@@ -705,7 +705,10 @@ function parser:parse_expression()
             }
         }
     end
-    return self:parse_cast()
+    return {
+        kind = KINDS.EXPRESSION,
+        values = self:parse_cast()
+    }
 end
 
 function parser:parse_call()
@@ -891,7 +894,7 @@ function parser:parse_variable_types()
 
         elseif mod.token == PRE_TOKENS.OPEN_BRACKETS then
             local size = 0
-            size = self:parse_expression()
+            size = self:parse_expression().values
 
             if size.kind ~= KINDS.LITERAL_INT then
                 self:error(string.format("Arrays can only have const sizes but not %s", size.kind))

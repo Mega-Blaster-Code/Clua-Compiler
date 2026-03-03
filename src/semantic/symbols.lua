@@ -22,11 +22,13 @@ SCOPE.__index = SCOPE
 
 local _n_of_scope = 0
 
-function _M.newScope()
+function _M.newScope(name)
 	local self = setmetatable({}, SCOPE)
+	
+	self.name = name or "__SCOPE" .. _n_of_scope
 
-	self.name = "__SCOPE" .. _n_of_scope
-
+	print("SCOPE NAME", "\"" .. self.name .. "\"")
+	
 	_n_of_scope = _n_of_scope + 1
 
 	self.variables = {}
@@ -42,8 +44,9 @@ function SCOPE:declareVariable(name, t)
 	self.variables[name] = t
 end
 
-function _M.pushScope(scope)
-	_M.scopes[#_M.scopes + 1] = scope or _M.newScope()
+function _M.pushScope(scope, name)
+	local s = scope or _M.newScope(name)
+	_M.scopes[#_M.scopes + 1] = s
 end
 
 function _M.popScope()
@@ -88,10 +91,17 @@ function _M.declareFunction(name, t)
 	if #_M.scopes > 1 then
 		_SEMANTIC.ARGUMENTS:ERROR(string.format("Can't define function inside of a scope depth %d", #_M.scopes))
 	end
-	if _M.functions[name] then
-		_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" is already declared", name))
-	end
-	_M.functions[name] = t
+	local f = _M.functions[name]
+
+		if f.prototype and t.prototype then
+			_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" has two prototypes", name))
+		end
+
+		if not f.prototype then
+			_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" is already declared", name))
+		end
+
+		_M.functions[name] = t
 	return true
 end
 
