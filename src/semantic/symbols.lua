@@ -5,8 +5,8 @@ local color8 = require("color8")
 local AST_SPEC, KINDS
 
 do
-    local info = require("ASTkinds")
-    AST_SPEC, KINDS = info[1], info[2]
+	local info = require("ASTkinds")
+	AST_SPEC, KINDS = info[1], info[2]
 end
 
 local types = require("semantic.types")
@@ -34,6 +34,8 @@ function _M.newScope(name)
 	self.is_loop = false
 	self.is_function = false
 
+	self.has_return = false
+
 	self.variables = {}
 
 	return self
@@ -58,7 +60,16 @@ function _M.popScope()
 	if #_M.scopes <= 0 then
 		_SEMANTIC.ARGUMENTS:ERROR("Attempt to close global scope")
 	end
-	print("POP", _M.scopes[#_M.scopes].name)
+	
+	local s = _M.scopes[#_M.scopes]
+	print("POP", s.name)
+
+	if s.is_function then
+		if not s.has_return then
+			_SEMANTIC.ARGUMENTS:ERROR("Function don't have a final return")
+		end
+	end
+
 	_M.scopes[#_M.scopes] = nil
 	return true
 end

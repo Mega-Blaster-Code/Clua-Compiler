@@ -1,8 +1,8 @@
 local PRE_TOKENS, KEYWORDS
 
 do
-    local info = require("tokens")
-    PRE_TOKENS, KEYWORDS = info[1], info[2]
+	local info = require("tokens")
+	PRE_TOKENS, KEYWORDS = info[1], info[2]
 end
 
 local kinds = {

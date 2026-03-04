@@ -7,7 +7,6 @@ No structs
 No const
 No Casting Arrays
 
-
 ::
 
 Variables
@@ -15,12 +14,109 @@ Fixed Arrays
 if, else, elseif
 while
 functions
-
-
-
-
 *----
 
-float i = 0;
+float gf;
+int gi = 10;
+int gi_shadow = 1;
 
-int x = 0 + 2 + (i : (float));
+int use_before;
+int result_global = use_before + 1;
+
+int cast_test = 1 + 2 * 3 : (double) : (int);
+
+float cast_precision = (5 / 2) : (double);
+
+
+int function shadow_test(int gi, int limit)
+	int local = gi + 1;
+
+	if(local > limit) then
+		int gi = 100;
+		
+		local = local + gi;
+	else
+		local = local + 1;
+	end
+	
+	return local;
+end
+
+
+void function scope_chain(int x)
+	if(x == 0) then
+		int a = 1;
+	elseif(x == 1) then
+		int a = 2;
+	else
+		int a = 3;
+	end
+	
+	return void;
+end
+
+void function for_scope(int min, int max)
+	for(int i = min; i < max; i = i + 1) do
+		int loop_var = i * 2;
+	end
+
+	return void;
+end
+
+int counter = 0;
+float acc = 1.0;
+while(counter < 10) do
+	acc = acc + counter / 2;
+	acc = acc + counter / 2.0;
+	counter = counter + 1;
+end
+
+int function multi_path(int x)
+	if(x > 0) then
+		return 1;
+	elseif(x == 0) then
+		return 0;
+	end
+	
+	return 0;
+end
+
+int assign_test = 0;
+float assign_float = 0.0;
+
+assign_test = assign_float;
+assign_test = assign_float : (int);
+
+int expr_test = 1;
+expr_test = expr_test + expr_test * expr_test;
+expr_test = (expr_test + expr_test) * expr_test;
+
+expr_test = expr_test + 1 : (double) : (int);
+
+int function param_shadow(int x)
+	if(x > 0) then
+		int x = 5;
+		return x;
+	end
+	
+	return x;
+end
+
+int gvalue = 50;
+
+int function resolve_test(int a)
+	int gvalue = a;
+	
+	do
+		int inner = gvalue + 1;
+		gvalue = inner;
+	end
+	
+	return gvalue;
+end
+
+int complex = ((1 + 2) * (3 - 4) / 5) + (6 : (double) : (int)) + (gi + (gf : (int)));
+
+int __i;
+
+__i = 0;
