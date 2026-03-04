@@ -15,11 +15,8 @@ local _M = {}
 _SEMANTIC = _M
 
 local analyzer = require("semantic.analyzer")
-local context = require("semantic.context")
 local expressions = require("semantic.expressions")
-local literals = require("src.semantic.literals")
 local semantic = require("semantic.semantic")
-local statements = require("semantic.statements")
 local symbols = require("semantic.symbols")
 local types = require("semantic.types")
 

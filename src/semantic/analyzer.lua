@@ -49,6 +49,7 @@ local _SEMANTIC = _SEMANTIC
 
 local types = require("semantic.types")
 local symbols = require("semantic.symbols")
+local expression = require("semantic.expressions")
 
 local _M = {}
 
@@ -149,6 +150,13 @@ function _M.analyzeDeclaration(node)
     local t = types.build(node)
 	local base = types.getBaseRoot(t)
     print("VAR", base.name)
+
+	-- analyze expression
+
+	if not expression.getExpression(node.values.values) then
+		_SEMANTIC.ARGUMENTS:ERROR("Invalid expression")
+	end
+
     symbols.declareVariable(base.name, t)
 end
 
@@ -186,6 +194,8 @@ function _M.analyze(node)
 	if not analyzer then
 		_SEMANTIC.ARGUMENTS:ERROR(string.format("Kind %s was unexpected", tostring(node.kind)))
 	end
+
+	print("=====================")
 
     analyzer(node)
 end

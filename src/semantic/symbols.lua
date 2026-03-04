@@ -80,6 +80,7 @@ function _M.findVariable(name)
 			return var
 		end
 	end
+	return nil
 end
 
 function _M.declareVariable(name, t)

@@ -676,7 +676,7 @@ function parser:parse_cast()
         left = {
             kind = KINDS.CAST,
             info = info,
-            left = left
+            value = left
         }
     end
 
