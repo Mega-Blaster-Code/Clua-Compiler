@@ -509,47 +509,61 @@ function parser:parse_primary(is_pointer)
 end
 
 function parser:parse_postfix()
-	local base = self:parse_primary()
+    local base = self:parse_primary()
 
-	local local_base = base
+    local ops = {}
 
-	while true do
-		if self:expect(PRE_TOKENS.OPEN_BRACKETS) then
-			self:consume()
-			local index = self:parse_expression()
-			self:CEexpect(PRE_TOKENS.CLOSE_BRACKETS)
-			local_base.node = {
-				kind = KINDS.INDEX_FIELD_ACCESS,
-				index = index
-			}
+    while true do
+        if self:expect(PRE_TOKENS.OPEN_BRACKETS) then
+            self:consume()
+            local index = self:parse_expression()
+            self:CEexpect(PRE_TOKENS.CLOSE_BRACKETS)
 
-		elseif self:expect(PRE_TOKENS.DOT) then
-			self:versionError("Clua version 0.1 don't have structs")
-			self:consume()
-			local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
+            table.insert(ops, {
+                kind = KINDS.INDEX_FIELD_ACCESS,
+                index = index
+            })
 
-			local_base.node = {
-				kind = KINDS.FIELD_ACCESS,
-				name = name
-			}
+        elseif self:expect(PRE_TOKENS.DOT) then
+            self:versionError("Clua version 0.1 don't have structs")
+            self:consume()
 
-		elseif self:expect(PRE_TOKENS.POINTER) then
-			self:versionError("Clua version 0.1 don't have pointers")
-			self:consume()
-			local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
-			local_base.node = {
-				kind = KINDS.POINTER_FIELD_ACCESS,
-				name = name
-			}
+            local name = self:validate_name(
+                self:CEexpect(PRE_TOKENS.NAME).buf
+            )
 
-		else
-			break
-		end
-		base.kind = KINDS.VAR_REF_FIELDS
-		local_base = local_base.node
-	end
+            table.insert(ops, {
+                kind = KINDS.FIELD_ACCESS,
+                name = name
+            })
 
-	return base
+        elseif self:expect(PRE_TOKENS.POINTER) then
+            self:versionError("Clua version 0.1 don't have pointers")
+            self:consume()
+
+            local name = self:validate_name(
+                self:CEexpect(PRE_TOKENS.NAME).buf
+            )
+
+            table.insert(ops, {
+                kind = KINDS.POINTER_FIELD_ACCESS,
+                name = name
+            })
+
+        else
+            break
+        end
+    end
+
+    if #ops > 0 then
+        return {
+            kind = KINDS.VAR_REF_FIELDS,
+            base = base,
+            ops = ops
+        }
+    end
+
+    return base
 end
 
 function parser:parse_unary()

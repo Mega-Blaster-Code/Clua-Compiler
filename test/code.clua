@@ -1,3 +1,23 @@
+--float function distance(float [3] pos1, float [3] pos2)
+	
+--end
+
+float function areaOfTriangle(float [3][3] triangle)
+	float neg = -(triangle[0][0] * triangle[1][1] * triangle[2][2]);
+	float pos = (triangle[0][2] * triangle[1][1] * triangle[2][0]);
+	return (neg + pos) / 2.0;
+end
+
+float x = 10.0;
+float y = -20.0;
+float z = 0.0;
+
+float [3] position1 = [x,y, z];
+float [3] position2 = [10.0, 50.0, -20.0];
+float [3] position3 = [0.0, 0.0, 0.0];
+
+float [3][3] triangle = [position1, position2, position3];
+
 ----*
 
 Clua v0.1
@@ -14,7 +34,7 @@ Fixed Arrays
 if, else, elseif
 while
 functions
-*----
+
 
 float gf;
 int gi = 10;
@@ -119,4 +139,8 @@ int complex = ((1 + 2) * (3 - 4) / 5) + (6 : (double) : (int)) + (gi + (gf : (in
 
 int __i;
 
+
+
 __i = 0;
+
+--*----

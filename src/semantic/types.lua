@@ -87,7 +87,8 @@ function _M.base(var, numeric, sign)
 		volatile = false,
 		sign = sign,
 		const = false,
-		name = var.name
+		name = var.name,
+		temp = false,
 	}
 end
 
@@ -96,7 +97,8 @@ function _M.pointer(inner)
 		kind = TKINDS.POINTER,
 		const = false,
 		volatile = false,
-		to = inner
+		to = inner,
+		temp = false,
 	}
 end
 
@@ -106,14 +108,16 @@ function _M.array(inner)
 		const = false,
 		volatile = false,
 		size = 0,
-		of = inner
+		of = inner,
+		temp = true,
 	}
 end
 
 function _M.struct(var)
 	return {
 		kind = TKINDS.STRUCT,
-		fields = var.values.values
+		fields = var.values.values,
+		temp = false,
 	}
 end
 
@@ -128,6 +132,7 @@ function _M._function(var)
 		const = b.const,
 		name = var.callee,
 		prototype = false,
+		temp = false,
 		args = {} -- internal use only
 	}
 
@@ -153,7 +158,8 @@ function _M.literalInt()
 		numeric = 2,
 		volatile = false,
 		sign = "signed",
-		const = true
+		const = true,
+		temp = true,
 	}
 end
 
@@ -164,18 +170,29 @@ function _M.literalFloat()
 		numeric = 3,
 		volatile = false,
 		sign = "signed",
-		const = true
+		const = true,
+		temp = true,
 	}
 end
 
 function _M.toBase(lit)
+	if lit.kind ~= TKINDS.LITERAL and not lit.kind == TKINDS.FUNCTION then
+		if lit.kind == TKINDS.ARRAY then
+			return _M.array(_M.toBase(lit.of))
+		end
+		if lit.kind == TKINDS.POINTER then
+			return _M.pointer(_M.toBase(lit.to))
+		end
+		return lit
+	end
 	return {
 		kind = TKINDS.BASE,
 		type = lit.type,
 		numeric = lit.numeric,
 		volatile = false,
 		sign = lit.sign,
-		const = true
+		const = true,
+		temp = lit.temp,
 	}
 end
 
@@ -194,7 +211,8 @@ function _M.copyBase(t)
 		numeric = t.numeric,
 		volatile = false,
 		sign = t.sign,
-		const = false
+		const = false,
+		temp = t.temp,
 	}
 end
 
@@ -297,6 +315,10 @@ function _M.isLiteral(t)
 	return t.kind == TKINDS.LITERAL
 end
 
+function _M.isTemp(t)
+	return t.temp == true
+end
+
 function _M.integerPromotion(t)
 
 	if not _M.isNumericType(t) then
@@ -361,9 +383,6 @@ function _M.arithmeticPromotion(a, b)
 		}
 	end
 
-	-- fase 3: somente inteiros agora
-
-	-- escolher o maior entre int / long / long long
 	local na = a.numeric or NUMERIC_DEFAULT
 	local nb = b.numeric or NUMERIC_DEFAULT
 
@@ -388,7 +407,7 @@ function _M.equals(a, b)
 	end
 
 	if _M.isArray(a) then
-		return a.const == b.const and _M.equals(b.of, a.of)
+		return a.const == b.const and _M.equals(b.of, a.of) and a.size == b.size
 	end
 
 	if _M.isFunction(a) then
@@ -415,6 +434,32 @@ function _M.equals(a, b)
 end
 
 function _M.lowEquals(a, b)
+	
+	if #a > 0 and #b > 0 then
+		if #a ~= #b then
+			return false
+		end
+	end
+	
+	
+	if #a > 0 then
+		for _, v in ipairs(a) do
+			if not _M.lowEquals(v, b) then
+				return false
+			end
+		end
+		return true
+	end
+	
+	if #b > 0 then
+		for _, v in ipairs(b) do
+			if not _M.lowEquals(v, a) then
+				return false
+			end
+		end
+		return true
+	end
+	
 	if a.kind ~= b.kind then
 		return false
 	end
@@ -444,6 +489,74 @@ function _M.lowEquals(a, b)
 			end
 		end
 		return a.type == b.type and a.numeric == b.numeric and a.sign == b.sign and a.name == b.name
+	end
+
+	if _M.isLiteral(a) then
+		if a.type == b.type then
+			return true
+		end
+	end
+end
+
+function _M.lowNumEquals(a, b)
+	
+	if #a > 0 and #b > 0 then
+		if #a ~= #b then
+			return false
+		end
+	end
+	
+	
+	if #a > 0 then
+		for _, v in ipairs(a) do
+			if not _M.lowNumEquals(v, b) then
+				return false
+			end
+		end
+		return true
+	end
+	
+	if #b > 0 then
+		for _, v in ipairs(b) do
+			if not _M.lowNumEquals(v, a) then
+				return false
+			end
+		end
+		return true
+	end
+	
+	if a.kind ~= b.kind then
+		if not (_M.isLiteral(a) and _M.isBase(b)) and not (_M.isBase(a) and _M.isLiteral(b)) then
+			
+			return false
+		end
+	end
+
+	if _M.isBase(a) then
+		return a.type == b.type
+	end
+
+	if _M.isPointer(a) then
+		return a.const == b.const and _M.lowNumEquals(a.to, b.to)
+	end
+
+	if _M.isArray(a) then
+		return a.const == b.const and a.size == b.size and _M.lowNumEquals(b.of, a.of)
+	end
+
+	if _M.isFunction(a) then
+		if #a.args ~= #b.args then
+			return false
+		end
+
+		for i, argA in ipairs(a.args) do
+			local argB = b.args[i]
+			local r = _M.lowNumEquals(argA, argB)
+			if not r then
+				return false
+			end
+		end
+		return a.type == b.type and a.sign == b.sign and a.name == b.name
 	end
 
 	if _M.isLiteral(a) then

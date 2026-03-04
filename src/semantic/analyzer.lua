@@ -53,8 +53,22 @@ local expression = require("semantic.expressions")
 
 local _M = {}
 
-function _M.analyzeExpression(node)
-	return expression.getExpression(node)
+function _M.analyzeExpression(node, expected)
+    local can, t = expression.getExpression(node)
+
+    if expected then
+        if not types.lowNumEquals(t, expected) then
+            _SEMANTIC.ARGUMENTS:ERROR(
+                string.format(
+                    "Expression don't match expected %s %s",
+                    inspect(expected),
+                    inspect(t)
+                )
+            )
+        end
+    end
+
+    return can, t
 end
 
 function _M.analyzeProgram(node)
@@ -163,23 +177,19 @@ function _M.analyzeReturn(node)
 		return
 	end
 
-
-	local can, t = _M.analyzeExpression(node.values)
 	local can, t = _M.analyzeExpression(node.values)
 
 	if not can then
 		_SEMANTIC.ARGUMENTS:ERROR("Invalid return expression")
 	end
 
-	if types.isLiteral(t) then
-		t = types.literalToBase(t)
-	end
-
 	if types.isVoid(is_f) then
 		_SEMANTIC.ARGUMENTS:ERROR("Void function can't return a value")
 	end
 
-	if not types.canCast(is_f, t) then
+	print(inspect(is_f), inspect(t))
+
+	if not types.lowNumEquals(is_f, t) then
 		_SEMANTIC.ARGUMENTS:ERROR("Return type don't match return type of function")
 	end
 
@@ -194,10 +204,12 @@ function _M.analyzeDeclaration(node)
 	-- analyze expression
 
 	if node.kind == KINDS.VAR_DECLARATION then
-		if not expression.getExpression(node.values.values) then
+		local can = _M.analyzeExpression(node.values.values, t)
+		if not can then
 			_SEMANTIC.ARGUMENTS:ERROR("Invalid expression")
 		end
 	end
+
 
 	symbols.declareVariable(base.name, t)
 end
@@ -211,11 +223,12 @@ function _M.analyzeRawDo(node)
 end
 
 function _M.analyzeAssignment(node)
+	local t = types.build(node)
 	local l_value = node.lvalue
 	local r_value = node.rvalue
 
-	_M.analyzeExpression(l_value)
-	_M.analyzeExpression(r_value)
+	_M.analyzeExpression(l_value, t)
+	_M.analyzeExpression(r_value, t)
 end
 
 local ANALYZER_BUILD = {
