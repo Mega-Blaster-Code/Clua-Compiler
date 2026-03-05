@@ -2,12 +2,14 @@
 	
 --end
 
+float function areaOfTriangle(float [3][3] triangle);
 
 float function areaOfTriangle(float [3][3] triangle)
 	float neg = -(triangle[0][0] * triangle[1][1] * triangle[2][2]);
 	float pos = (triangle[0][2] * triangle[1][1] * triangle[2][0]);
 	return (neg + pos) / 2.0;
 end
+
 
 float x = 10.0;
 float y = -20.0;
@@ -25,7 +27,7 @@ area = 8.0;
 
 int test = 0.0:int::float::int: + 0.0:int:;
 
-test = 0.0:int:;
+test = 0.0:int long long: + 3;
 
 ----*
 
