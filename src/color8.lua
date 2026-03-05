@@ -26,5 +26,8 @@ function module.strip_rgb(str)
 	return str
 end
 
+function module.sreset()
+	return "\27[0m"
+end
 
 return module

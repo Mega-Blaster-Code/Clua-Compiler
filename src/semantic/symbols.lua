@@ -42,17 +42,23 @@ function _M.newScope(name)
 end
 
 function SCOPE:getVariable(name)
-	return self.variables[name]
+	local var = self.variables[name]
+	if var then
+		var.used = true
+	end
+	return (var or {}).t
 end
 
 function SCOPE:declareVariable(name, t)
-	self.variables[name] = t
+	self.variables[name] = {
+		t = t,
+		used = false,
+	}
 end
 
 function _M.pushScope(scope, name)
 	local s = scope or _M.newScope(name)
 	_M.scopes[#_M.scopes + 1] = s
-	print("PUSH", s.name)
 	return s
 end
 
@@ -62,7 +68,12 @@ function _M.popScope()
 	end
 	
 	local s = _M.scopes[#_M.scopes]
-	print("POP", s.name)
+
+	for name, var in pairs(s.variables) do
+		if var.used == false and not var.t.outside then
+			_SEMANTIC.ARGUMENTS:WARN(string.format("Variable \"%s\" was never used in scope \"%s\".", name, s.name))
+		end
+	end
 
 	if s.is_function then
 		if not s.has_return then

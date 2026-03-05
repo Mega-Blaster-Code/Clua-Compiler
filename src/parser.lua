@@ -23,7 +23,7 @@ local __types = {
 	[PRE_TOKENS.CHAR] = true,
 	[PRE_TOKENS.DOUBLE] = true,
 	[PRE_TOKENS.BOOL] = true,
-	[PRE_TOKENS.VOID] = true
+	[PRE_TOKENS.VOID] = true,
 	-- [PRE_TOKENS.NAME] = true -- structs
 }
 
@@ -39,20 +39,30 @@ local __builtin_types = {
 local __modifiers = {
 	[PRE_TOKENS.CONST] = true,
 	[PRE_TOKENS.VOLATILE] = true,
-	[PRE_TOKENS.SIGNED] = true,
-	[PRE_TOKENS.UNSIGNED] = true,
 	[PRE_TOKENS.OPEN_BRACKETS] = true,
 	[PRE_TOKENS.CLOSE_BRACKETS] = true,
 	[PRE_TOKENS.ASTERISK] = true,
-	[PRE_TOKENS.LONG] = true,
-	[PRE_TOKENS.SHORT] = true
 }
 
 local __qualifiers = {
 	[PRE_TOKENS.LONG] = true,
 	[PRE_TOKENS.SHORT] = true,
 	[PRE_TOKENS.SIGNED] = true,
-	[PRE_TOKENS.UNSIGNED] = true
+	[PRE_TOKENS.UNSIGNED] = true,
+	[PRE_TOKENS.OUTSIDE] = true,
+}
+
+local __modifiers_and_qualifiers = {
+	[PRE_TOKENS.LONG] = true,
+	[PRE_TOKENS.SHORT] = true,
+	[PRE_TOKENS.SIGNED] = true,
+	[PRE_TOKENS.UNSIGNED] = true,
+	[PRE_TOKENS.OUTSIDE] = true,
+	[PRE_TOKENS.CONST] = true,
+	[PRE_TOKENS.VOLATILE] = true,
+	[PRE_TOKENS.OPEN_BRACKETS] = true,
+	[PRE_TOKENS.CLOSE_BRACKETS] = true,
+	[PRE_TOKENS.ASTERISK] = true,
 }
 
 local __types_and_modifiers = {
@@ -69,7 +79,8 @@ local __types_and_modifiers = {
 	[PRE_TOKENS.UNSIGNED] = true,
 	[PRE_TOKENS.OPEN_BRACKETS] = true,
 	[PRE_TOKENS.CLOSE_BRACKETS] = true,
-	[PRE_TOKENS.ASTERISK] = true
+	[PRE_TOKENS.ASTERISK] = true,
+	[PRE_TOKENS.OUTSIDE] = true,
 }
 
 local __numbers = {
@@ -231,7 +242,7 @@ local function buildMessage(self, msg, er, tokens)
 	local message = {}
 
 	message[#message + 1] = (string.format("%s ['%s'] %sline:%s column:%s%s\n", er, self.file_path,
-		color8.sfcolor(50, 150, 255), self.line, self.column, color8.sfcolor(200, 200, 200)))
+		color8.sfcolor(50, 150, 255), self.line, self.column, color8.sreset()))
 	message[#message + 1] = (msg)
 	message[#message + 1] = ("\n\n")
 
@@ -239,7 +250,7 @@ local function buildMessage(self, msg, er, tokens)
 		if token.token.__from_preprocessor then
 			message[#message + 1] = color8.sfcolor(50, 200, 200)
 		else
-			message[#message + 1] = color8.sfcolor(200, 200, 200)
+			message[#message + 1] = color8.sreset()
 		end
 
 		message[#message + 1] = (token.token.buf:gsub("%c", " "))
@@ -269,7 +280,7 @@ local function buildMessage(self, msg, er, tokens)
 
 		end
 	end
-	message[#message + 1] = color8.sfcolor(200, 200, 200)
+	message[#message + 1] = color8.sreset()
 	message[#message + 1] = ("\n")
 
 	return table.concat(message)
@@ -882,6 +893,7 @@ function parser:parse_assignment()
 end
 
 function parser:parse_variable_types()
+	
 	local type = self:Texpect(__types)
 	local raw_type
 	if type then
@@ -896,8 +908,9 @@ function parser:parse_variable_types()
 	local long_count = 0
 	local is_short = false
 	local sign = "signed"
-
-	while self:Texpect(__modifiers) do
+	local outside = false
+	
+	while self:Texpect(__modifiers_and_qualifiers) do
 		local mod = self:consume()
 
 		if mod.token == PRE_TOKENS.ASTERISK then
@@ -962,13 +975,18 @@ function parser:parse_variable_types()
 				end
 				for i = 1, #qualifiers do
 					local q = qualifiers[i]
-					print("KINDS", q.value, mod.buf)
 					if q.value == "signed" or q.value == "unsigned" then
 						self:error(string.format("Variable can't be '%s' and '%s'", q.value, mod.buf))
 					end
 				end
 
 				sign = mod.buf
+			elseif mod.token == PRE_TOKENS.OUTSIDE then
+
+				if outside then
+					self:error("Variable can't have 'outside outside +...'")
+				end
+				outside = true
 			end
 
 			table.insert(qualifiers, {
@@ -985,7 +1003,7 @@ function parser:parse_variable_types()
 			})
 		end
 	end
-
+	
 	if is_short and long_count > 0 then
 		self:error("Variable can't be 'short' and 'long' at the same time")
 	end
@@ -996,6 +1014,7 @@ function parser:parse_variable_types()
 		type = type,
 		modifiers = modifiers,
 		qualifiers = {
+			outside = outside,
 			long_count = long_count,
 			sign = sign,
 			is_short = is_short,
@@ -1393,7 +1412,6 @@ end
 
 function parser:addDebuger(ast, line)
 	for k, b in pairs(ast) do
-		print(k)
 		if type(b) == "table" then
 
 			if b.__info then

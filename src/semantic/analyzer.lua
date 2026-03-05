@@ -124,7 +124,6 @@ function _M.analyzeBreak(node)
         _SEMANTIC.SERROR("Can't use 'break' outside a for or while loop", node)
     end
 
-    print(scope.is_loop, inspect(scope))
 end
 
 function _M.analyzeFunction(node)
@@ -137,10 +136,6 @@ function _M.analyzeFunction(node)
     if base.prototype then
         return
     end
-
-    print("FUNCTION", base.name)
-
-    print(inspect(base))
 
     local _scope = symbols.pushScope()
     _scope.is_function = t
@@ -181,8 +176,6 @@ function _M.analyzeReturn(node)
         _SEMANTIC.SERROR("Void function can't return a value", node)
     end
 
-    print(inspect(is_f), inspect(t))
-
     if not types.lowNumEquals(is_f, t) then
         _SEMANTIC.SERROR("Return type don't match return type of function", node)
     end
@@ -193,7 +186,6 @@ end
 function _M.analyzeDeclaration(node)
     local t = types.build(node)
     local base = types.getBaseRoot(t)
-    print("VAR", base.name)
 
     -- analyze expression
 
@@ -223,6 +215,10 @@ function _M.analyzeAssignment(node)
     _M.analyzeExpression(r_value, t)
 end
 
+function _M.analyzeExtern(node)
+	
+end
+
 local ANALYZER_BUILD = {
     [KINDS.FUNCTION_DECLARATION] = _M.analyzeFunction,
     [KINDS.FUNCTION_DECLARATION_PROTOTYPE] = _M.analyzeFunction,
@@ -236,20 +232,18 @@ local ANALYZER_BUILD = {
     [KINDS.RETURN] = _M.analyzeReturn,
     [KINDS.VOID_RETURN] = _M.analyzeReturn,
     [KINDS.RAW_DO] = _M.analyzeRawDo,
-    [KINDS.PROGRAM] = _M.analyzeProgram
+    [KINDS.PROGRAM] = _M.analyzeProgram,
+	[KINDS.EXTERN] = _M.analyzeExtern,
 }
 
 function _M.analyze(node)
     operations = operations + 1
-    print(node.kind)
 
     local analyzer = ANALYZER_BUILD[node.kind]
 
     if not analyzer then
         _SEMANTIC.SERROR(string.format("Kind %s was unexpected", tostring(node.kind)), node)
     end
-
-    print("=====================")
 
     analyzer(node)
 end

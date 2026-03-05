@@ -130,8 +130,6 @@ function _M.getExpression(node, no_cast)
 
 		value_t = types.literalToBase(value_t)
 
-		-- print(inspect(type_t), inspect(type_t))
-
 		local can_cast, result = types.canCast(value_t, type_t)
 
 		if not can_cast then

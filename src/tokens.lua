@@ -95,6 +95,7 @@ local tokens = {
 	UNSIGNED = "__UNSIGNED",
 	CONST = "__CONST",
 	VOLATILE = "__VOLATILE",
+	OUTSIDE = "__OUTSIDE",
 }
 
 local keywords = {

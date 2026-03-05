@@ -10,7 +10,6 @@ float function areaOfTriangle(float [3][3] triangle)
 	return (neg + pos) / 2.0;
 end
 
-
 float x = 10.0;
 float y = -20.0;
 float z = 0.0;
@@ -25,9 +24,21 @@ float area = areaOfTriangle(triangle);
 
 area = 8.0;
 
-int test = 0.0:int::float::int: + 0.0:int:;
+int outside test = 0.0:int::float::int: + 0.0:int:;
 
-test = 0.0:int long long: + 3;
+extern
+
+#include <stdio.h>
+
+const char * name = "my name";
+
+int main(int argc, char **){
+	return 0;
+}
+
+exend
+
+--test = 0.0:int long long: + 3;
 
 ----*
 

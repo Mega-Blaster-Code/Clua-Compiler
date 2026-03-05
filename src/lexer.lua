@@ -27,6 +27,9 @@ do
 		pattern = "^'.'$",
 		token = PRE_TOKENS.CHAR_LITERAL
 	}, {
+		pattern = "^outside$",
+		token = PRE_TOKENS.OUTSIDE
+	}, {
 		pattern = "^#$",
 		token = PRE_TOKENS.HASH_TAG
 	}, {

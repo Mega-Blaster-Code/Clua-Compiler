@@ -79,7 +79,7 @@ function _M.getNumeric(var)
     return NUMERIC_DEFAULT
 end
 
-function _M.base(var, numeric, sign)
+function _M.base(var, numeric, sign, outside)
     return {
         kind = TKINDS.BASE,
         type = var.type,
@@ -88,7 +88,8 @@ function _M.base(var, numeric, sign)
         sign = sign,
         const = false,
         name = var.name,
-        temp = false
+        temp = false,
+		outside = outside
     }
 end
 
@@ -192,7 +193,8 @@ function _M.toBase(lit)
         volatile = false,
         sign = lit.sign,
         const = true,
-        temp = lit.temp
+        temp = lit.temp,
+		outside = lit.outside
     }
 end
 
@@ -212,7 +214,8 @@ function _M.copyBase(t)
         volatile = false,
         sign = t.sign,
         const = false,
-        temp = t.temp
+        temp = t.temp,
+		outside = t.outside
     }
 end
 
@@ -238,7 +241,7 @@ function _M.build(var)
         t = _M._function(var)
         t.prototype = true
     else
-        t = _M.base(var, _M.getNumeric(var), qualifiers.sign)
+        t = _M.base(var, _M.getNumeric(var), qualifiers.sign, qualifiers.outside)
     end
 
     for i = #var.modifiers, 1, -1 do

@@ -8,10 +8,10 @@ INPUT_FILE = $(TEST_DIR)/code.clua
 PREPROCESSOR_FILE = $(TEST_DIR)/preprocessor.clua
 AST_FILE = $(TEST_DIR)/ast.txt
 TOKENS_FILE = $(TEST_DIR)/tokens.clua
-OUT_FILE = out.txt
+OUT_FILE = out.c
+GEN_TARGET = c
 
-
-LUA_FLAGS = -f@$(INPUT_FILE) -pp@$(PREPROCESSOR_FILE) -ast@$(AST_FILE) -tt@$(TOKENS_FILE)
+LUA_FLAGS = -f@$(INPUT_FILE) -pp@$(PREPROCESSOR_FILE) -ast@$(AST_FILE) -tt@$(TOKENS_FILE) -o@$(OUT_FILE) -target@$(GEN_TARGET)
 
 SRC_PATH = src
 OBJ_PATH = obj

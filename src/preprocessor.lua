@@ -582,7 +582,7 @@ function processor:error(msg, raise)
             end
         end
     end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
+    message[#message + 1] = color8.sreset()
     message[#message + 1] = ("\n")
 
     message = table.concat(message)
@@ -668,7 +668,7 @@ function processor:warn(msg, raise)
 
         end
     end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
+    message[#message + 1] = color8.sreset()
 
     message = table.concat(message)
 
@@ -752,7 +752,7 @@ function processor:info(msg)
 
         end
     end
-    message[#message + 1] = color8.sfcolor(200, 200, 200)
+    message[#message + 1] = color8.sreset()
     message[#message + 1] = ("\n")
 
     local message = table.concat(message)
