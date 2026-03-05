@@ -58,7 +58,7 @@ end
 
 function _M.popScope()
 	if #_M.scopes <= 0 then
-		_SEMANTIC.ARGUMENTS:ERROR("Attempt to close global scope")
+		_SEMANTIC.SERROR("Attempt to close global scope")
 	end
 	
 	local s = _M.scopes[#_M.scopes]
@@ -66,7 +66,7 @@ function _M.popScope()
 
 	if s.is_function then
 		if not s.has_return then
-			_SEMANTIC.ARGUMENTS:ERROR("Function don't have a final return")
+			_SEMANTIC.SERROR("Function don't have a final return")
 		end
 	end
 
@@ -96,7 +96,7 @@ end
 
 function _M.declareVariable(name, t)
 	if _M.findVariableInLocalScope(name) then
-		_SEMANTIC.ARGUMENTS:ERROR(string.format("Variable \"%s\" is already declared in local scope", name))
+		_SEMANTIC.SERROR(string.format("Variable \"%s\" is already declared in local scope", name))
 	end
 
 	local local_scope = _M.getLocalScope()
@@ -107,23 +107,23 @@ end
 
 function _M.declareFunction(name, t)
 	if #_M.scopes > 1 then
-		_SEMANTIC.ARGUMENTS:ERROR(string.format("Can't define function inside of a scope depth %d", #_M.scopes))
+		_SEMANTIC.SERROR(string.format("Can't define function inside of a scope depth %d", #_M.scopes))
 	end
 	local f = _M.functions[name]
 
 	if f then
 
 		if f.prototype and t.prototype then
-			_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" has two prototypes", name))
+			_SEMANTIC.SERROR(string.format("Function \"%s\" has two prototypes", name))
 		end
 
 		if not f.prototype then
-			_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" is already declared", name))
+			_SEMANTIC.SERROR(string.format("Function \"%s\" is already declared", name))
 		end
 
 		if f.prototype then
 			if not types.lowEquals(f, t) then
-				_SEMANTIC.ARGUMENTS:ERROR(string.format("Function \"%s\" prototype don't match declaration", name))
+				_SEMANTIC.SERROR(string.format("Function \"%s\" prototype don't match declaration", name))
 			end
 		end
 

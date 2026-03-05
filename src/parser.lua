@@ -163,7 +163,8 @@ end
 function parser:__line_info()
 	return {
 		line = self.line,
-		column = self.column
+		column = self.column,
+		__info = true,
 	}
 end
 
@@ -508,8 +509,25 @@ function parser:parse_primary(is_pointer)
 	self:error(string.format("Invalid primary expression ['%s'] ['%s']", tok.token, tok.buf))
 end
 
+function parser:parse_cast()
+	local left = self:parse_primary()
+
+	while self:expect(PRE_TOKENS.COLON) do
+		self:consume()
+		local info = self:parse_variable_types()
+		self:CEexpect(PRE_TOKENS.COLON)
+		left = {
+			kind = KINDS.CAST,
+			info = info,
+			value = left
+		}
+	end
+
+	return left
+end
+
 function parser:parse_postfix()
-    local base = self:parse_primary()
+    local base = self:parse_cast()
 
     local ops = {}
 
@@ -679,24 +697,6 @@ function parser:parse_or()
 	return left
 end
 
-function parser:parse_cast()
-	local left = self:parse_or()
-
-	while self:expect(PRE_TOKENS.COLON) do
-		self:consume()
-		self:CEexpect(PRE_TOKENS.OPEN_PARENTHESES)
-		local info = self:parse_variable_types()
-		self:CEexpect(PRE_TOKENS.CLOSE_PARENTHESES)
-		left = {
-			kind = KINDS.CAST,
-			info = info,
-			value = left
-		}
-	end
-
-	return left
-end
-
 function parser:parse_expression()
 	if self:expect(PRE_TOKENS.OPEN_BRACKETS) then
 		self:consume()
@@ -721,7 +721,7 @@ function parser:parse_expression()
 	end
 	return {
 		kind = KINDS.EXPRESSION,
-		values = self:parse_cast()
+		values = self:parse_or()
 	}
 end
 
@@ -1391,6 +1391,27 @@ function parser:parse_statement()
 	self:error(string.format("Invalid statement ['%s']", self:peek().token))
 end
 
+function parser:addDebuger(ast, line)
+	for k, b in pairs(ast) do
+		print(k)
+		if type(b) == "table" then
+
+			if b.__info then
+				goto continue
+			end
+			
+			if b.__line_info then
+				line = b.__line_info
+			else
+				b.__line_info = line
+			end
+			
+			self:addDebuger(b, line)
+		end
+		::continue::
+	end
+end
+
 function parser:start(use_semicolan)
 	self.use_semicolan = use_semicolan
 	while self:peek() do
@@ -1402,6 +1423,8 @@ function parser:start(use_semicolan)
 	if #self.scopes > 0 then
 		self:error("Scope was not closed")
 	end
+
+	self:addDebuger(self.buffer)
 
 	return self.buffer
 end

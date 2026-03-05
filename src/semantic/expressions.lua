@@ -34,10 +34,20 @@ local function getVariable(name)
 	local var = symbols.findVariable(name)
 
 	if not var then
-		_SEMANTIC.ARGUMENTS:ERROR(string.format("Variable \"%s\" was not declared", name))
+		_SEMANTIC.SERROR(string.format("Variable \"%s\" was not declared", name))
 	end
 
 	return var
+end
+
+local function getFunction(name)
+	local fuc = symbols.findFunction(name)
+
+	if not fuc then
+		_SEMANTIC.SERROR(string.format("Function \"%s\" was not declared", name))
+	end
+
+	return fuc
 end
 
 function _M.getBinary(tA, tB, op)
@@ -46,29 +56,29 @@ function _M.getBinary(tA, tB, op)
 	return can_binary, result
 end
 
-function _M.getExpression(node)
+function _M.getExpression(node, no_cast)
 	if node.kind == KINDS.BINARY_EXPRESSION then
 		local left = node.left
 		local right = node.right
 
-		local can_left, t_left = _M.getExpression(left)
+		local can_left, t_left = _M.getExpression(left, no_cast)
 
-		local can_right, t_right = _M.getExpression(right)
+		local can_right, t_right = _M.getExpression(right, no_cast)
 		local can_binary, result = _M.getBinary(t_left, t_right, node.op)
 
 		if not can_binary then
-			_SEMANTIC.ARGUMENTS:ERROR(string.format("Can't do binary operation [%s] with %s[%s] %s[%s]", node.op,
-				t_left.type, t_left.kind, t_right.type, t_right.kind))
+			_SEMANTIC.SERROR(string.format("Can't do binary operation [%s] with %s[%s] %s[%s]", node.op,
+				t_left.type, t_left.kind, t_right.type, t_right.kind), node)
 		end
 
 		return true, result
 	elseif node.kind == KINDS.UNARY_EXPRESSION or node.kind == KINDS.ADDRESS_OF then
-		local can, t = _M.getExpression(node.expr)
+		local can, t = _M.getExpression(node.expr, no_cast)
 		local op = node.op
 
 		if op == "&" then
 			if types.isTemp(t) then
-				_SEMANTIC.ARGUMENTS:ERROR("Can't get address of a temporary value")
+				_SEMANTIC.SERROR("Can't get address of a temporary value", node)
 			end
 		end
 		
@@ -77,16 +87,16 @@ function _M.getExpression(node)
 		local size = #node.values
 
 		if size == 0 then
-			_SEMANTIC.ERROR("Empty array literal not allowed")
+			_SEMANTIC.SERROR("Empty array literal not allowed", node)
 		end
 
-		local _, first_type = _M.getExpression(node.values[1])
+		local _, first_type = _M.getExpression(node.values[1], no_cast)
 
 		for i = 2, size do
-			local _, t = _M.getExpression(node.values[i])
+			local _, t = _M.getExpression(node.values[i], no_cast)
 
 			if not types.lowNumEquals(first_type, t) then
-				_SEMANTIC.ERROR("Array literal element type mismatch")
+				_SEMANTIC.SERROR("Array literal element type mismatch", node)
 			end
 		end
 
@@ -95,25 +105,28 @@ function _M.getExpression(node)
 
 		return true, final_type
 	elseif node.kind == KINDS.VAR_REF_FIELDS then
-		local _, base = _M.getExpression(node.base)
+		local _, base = _M.getExpression(node.base, no_cast)
 		local lbase = base
 		for i, op in ipairs(node.ops) do
 			if op.kind == KINDS.INDEX_FIELD_ACCESS then
 				if not types.isArray(lbase) then
-					_SEMANTIC.ARGUMENTS:ERROR("Can't index a non array values")
+					_SEMANTIC.SERROR("Can't index a non array values", node)
 				end
-				_M.getExpression(op.index)
+				_M.getExpression(op.index, no_cast)
 				lbase = lbase.of
 			end
 		end
 
 		return true, lbase
 	elseif node.kind == KINDS.CAST then
+		if no_cast then
+			_SEMANTIC.SERROR(string.format("illegal casting"), node)
+		end
 		local value = node.value
 		local info = node.info
 		
 		local type_t = types.build(info)
-		local can, value_t = _M.getExpression(value)
+		local can, value_t = _M.getExpression(value, no_cast)
 
 		value_t = types.literalToBase(value_t)
 
@@ -122,11 +135,30 @@ function _M.getExpression(node)
 		local can_cast, result = types.canCast(value_t, type_t)
 
 		if not can_cast then
-			_SEMANTIC.ARGUMENTS:ERROR(string.format("illegal casting with %s[%s] %s[%s]", type_t.type, type_t.kind,
-				value_t.type, value_t.kind))
+			_SEMANTIC.SERROR(string.format("illegal casting with %s[%s] %s[%s]", type_t.type, type_t.kind,
+				value_t.type, value_t.kind), node)
 		end
 
 		return true, type_t
+	elseif node.kind == KINDS.CALL_EXPRESSION then
+		local func = getFunction(node.callee)
+		local in_args = {}
+
+		for i, arg in ipairs(node.args) do
+			local _, t = _M.getExpression(arg, no_cast)
+			in_args[i] = t
+		end
+
+		for i, arg in ipairs(func.args) do
+			if not in_args[i] then
+				_SEMANTIC.SERROR(string.format("Function Call is missing %d arguments. missing in #%d", #func.args - (i - 1), i), node)
+			end
+			if not types.equals(in_args[i], arg) then
+				_SEMANTIC.SERROR(string.format("Function Call arguments don't match declaration\n%s[%s] != %s[%s]", in_args[i].type, in_args[i].kind, arg.type, arg.kind), node)
+			end
+		end
+
+		return true, types.functionToBase(func)
 	end
 
 	local _, t
@@ -134,7 +166,7 @@ function _M.getExpression(node)
 	if _M.isLiteral(node) then
 		t = types.build(node)
 	elseif _M.isExpression(node) then
-		_, t = _M.getExpression(node.values)
+		_, t = _M.getExpression(node.values, no_cast)
 	elseif _M.isVarRef(node) then
 		t = getVariable(node.name)
 	end
