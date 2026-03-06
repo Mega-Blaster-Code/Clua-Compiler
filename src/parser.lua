@@ -913,7 +913,7 @@ function parser:parse_variable_types()
 		local mod = self:consume()
 
 		if mod.token == PRE_TOKENS.ASTERISK then
-			self:versionError("Clua version 0.1 don't have pointers")
+			--self:versionError("Clua version 0.1 don't have pointers")
 			table.insert(modifiers, {
 				kind = KINDS.POINTER_MODIFIER
 			})
@@ -1000,7 +1000,7 @@ function parser:parse_variable_types()
 			})
 		else
 			if mod.buf == "const" then
-				self:versionError("Clua version 0.1 don't have const")
+				--self:versionError("Clua version 0.1 don't have const")
 			end
 			table.insert(modifiers, {
 				kind = KINDS.MODIFIER,
@@ -1011,6 +1011,10 @@ function parser:parse_variable_types()
 	
 	if is_short and long_count > 0 then
 		self:error("Variable can't be 'short' and 'long' at the same time")
+	end
+
+	if static and outside then
+		self:error("Variable can't be 'static' and 'outside' at the same time")
 	end
 
 	local is_only_void = type == "void" and not (modifiers[1] and modifiers[1].kind == KINDS.POINTER_MODIFIER)
@@ -1451,6 +1455,26 @@ function parser:start(use_semicolan)
 	self:addDebuger(self.buffer)
 
 	return self.buffer
+end
+
+function _M.clean(AST)
+	if type(AST) ~= "table" then
+		return AST
+	end
+
+	local n_ast = {}
+
+	for k, v in pairs(AST) do
+		if k ~= "__line_info" then
+			if type(v) == "table" then
+				n_ast[k] = _M.clean(v)
+			else
+				n_ast[k] = v
+			end
+		end
+	end
+
+	return n_ast
 end
 
 return _M

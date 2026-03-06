@@ -53,16 +53,27 @@ local expression = require("semantic.expressions")
 
 local _M = {}
 
-function _M.analyzeExpression(node, expected, no_cast)
-    local can, t = expression.getExpression(node, no_cast)
+function _M.analyzeExpression(node, expected)
+	local can, t = expression.getExpression(node)
 
-    if expected then
-        if not types.lowNumEquals(t, expected) then
-            _SEMANTIC.SERROR(string.format("Expression don't match expected %s %s", inspect(expected), inspect(t)), node)
-        end
-    end
+	if expected then
+		t = types.resolveLiteral(t, expected)
+	else
+		t = types.literalToBase(t)
+	end
 
-    return can, t
+	if expected then
+		if not types.lowNumEquals(t, expected) then
+			print(inspect(expected), inspect(t))
+			_SEMANTIC.ARGUMENTS:ERROR(string.format(
+				"Expression don't match expected %s %s",
+				inspect(expected),
+				inspect(t)
+			))
+		end
+	end
+
+	return true, t
 end
 
 function _M.analyzeProgram(node)

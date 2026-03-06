@@ -67,11 +67,12 @@ end
 
 local ast_handler = parser.new(file_path, ARGUMENTS, _i)
 local AST_TREE = ast_handler:start(not ARGUMENTS:GET_FLAG("-no-semicolan"))
+local clean_AST_TREE = parser.clean(AST_TREE)
 
 if type(ARGUMENTS:GET_FLAG("-ast")) == "string" then
     local file_path = ARGUMENTS:GET_FLAG("-ast")
     local file_h = file2io.open(file_path, file2io.modes.write_binary)
-    file_h:write(inspect(AST_TREE))
+    file_h:write(inspect(clean_AST_TREE))
     file_h:close()
 end
 
@@ -96,7 +97,7 @@ if type(ARGUMENTS:GET_FLAG("-o")) == "string" then
     output_file = ARGUMENTS:GET_FLAG("-o")
 end
 
-local codeGen_handler = codeGen.new(output_file, target, AST_TREE, ARGUMENTS)
+local codeGen_handler = codeGen.new(output_file, target, clean_AST_TREE, ARGUMENTS)
 local out_content = codeGen_handler:start()
 
 local output_file_handler = file2io.open(output_file or ("out." .. target), "wb")

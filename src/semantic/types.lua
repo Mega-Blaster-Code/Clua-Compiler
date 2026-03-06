@@ -89,8 +89,8 @@ function _M.base(var, numeric, sign, outside, static)
         const = false,
         name = var.name,
         temp = false,
-		outside = outside,
-		static = static,
+        outside = outside,
+        static = static
     }
 end
 
@@ -135,8 +135,8 @@ function _M._function(var)
         name = var.callee,
         prototype = false,
         temp = false,
-		static = var.static,
-		outside = var.outside,
+        static = var.static,
+        outside = var.outside,
         args = {} -- internal use only
     }
 
@@ -180,7 +180,7 @@ function _M.literalFloat()
 end
 
 function _M.toBase(lit)
-    if lit.kind ~= TKINDS.LITERAL and not lit.kind == TKINDS.FUNCTION then
+    if lit.kind ~= TKINDS.LITERAL and lit.kind ~= TKINDS.FUNCTION then
         if lit.kind == TKINDS.ARRAY then
             return _M.array(_M.toBase(lit.of))
         end
@@ -197,8 +197,8 @@ function _M.toBase(lit)
         sign = lit.sign,
         const = true,
         temp = lit.temp,
-		outside = lit.outside,
-		static = lit.static,
+        outside = lit.outside,
+        static = lit.static
     }
 end
 
@@ -218,9 +218,9 @@ function _M.copyBase(t)
         volatile = false,
         sign = t.sign,
         const = false,
-        temp = t.temp,
-		outside = t.outside,
-		static = t.static,
+        temp = false,
+        outside = t.outside,
+        static = t.static
     }
 end
 
@@ -281,6 +281,10 @@ function _M.isNumericType(t)
     return t.kind == TKINDS.BASE and (t.type == "int" or t.type == "float" or t.type == "double" or t.type == "char")
 end
 
+function _M.isLiteralNumeric(t)
+    return t.kind == TKINDS.LITERAL and (t.type == "int" or t.type == "float" or t.type == "double" or t.type == "char")
+end
+
 function _M.getBaseRoot(t)
     if t.kind == TKINDS.BASE then
         return t
@@ -327,6 +331,28 @@ function _M.isTemp(t)
     return t.temp == true
 end
 
+function _M.resolveLiteral(value, target)
+
+    if _M.isLiteral(value) then
+        local base = _M.copyBase(_M.getBaseRoot(target))
+        base.const = true
+        base.temp = true
+        return base
+    end
+
+    if _M.isArray(value) and _M.isArray(target) then
+        local t = _M.array(_M.resolveLiteral(value.of, target.of))
+        t.size = value.size
+        return t
+    end
+
+    if _M.isPointer(value) and _M.isPointer(target) then
+        return _M.pointer(_M.resolveLiteral(value.to, target.to))
+    end
+
+    return value
+end
+
 function _M.integerPromotion(t)
     if not _M.isNumericType(t) then
         return nil
@@ -335,6 +361,7 @@ function _M.integerPromotion(t)
     local result = _M.copyBase(t)
 
     -- char -> int
+
     if t.type == "char" then
         result.type = "int"
         result.numeric = NUMERIC_DEFAULT
@@ -346,8 +373,8 @@ function _M.integerPromotion(t)
         result.numeric = NUMERIC_DEFAULT
     end
 
-	local baseT = _M.getBaseRoot(t)
-	local baseR = _M.getBaseRoot(result)
+    local baseT = _M.getBaseRoot(t)
+    local baseR = _M.getBaseRoot(result)
 
     if not _M.lowEquals(baseT, baseR) then
         _SEMANTIC.ARGUMENTS:WARN(string.format("(integer promotion) %s -> %s", baseT.type, baseR.type))
@@ -357,8 +384,11 @@ function _M.integerPromotion(t)
 end
 
 function _M.arithmeticPromotion(a, b)
-    if not _M.isNumericType(a) or not _M.isNumericType(b) then
-        return nil
+
+    if _M.isLiteral(a) and not _M.isLiteral(b) then
+        a = _M.resolveLiteral(a, b)
+    elseif _M.isLiteral(b) and not _M.isLiteral(a) then
+        b = _M.resolveLiteral(b, a)
     end
 
     local originalA = _M.copyBase(a)
@@ -400,10 +430,9 @@ function _M.arithmeticPromotion(a, b)
         end
     end
 
-	local baseA = _M.getBaseRoot(originalA)
-	local baseB = _M.getBaseRoot(originalB)
-	local baseT = _M.getBaseRoot(result)
-
+    local baseA = _M.getBaseRoot(originalA)
+    local baseB = _M.getBaseRoot(originalB)
+    local baseT = _M.getBaseRoot(result)
 
     if not _M.equals(originalA, baseT) then
         _SEMANTIC.ARGUMENTS:WARN(string.format("(arithmetic promotion) %s -> %s", baseA.type, baseT.type))
@@ -417,6 +446,15 @@ function _M.arithmeticPromotion(a, b)
 end
 
 function _M.equals(a, b)
+
+    if _M.isLiteral(a) then
+        a = _M.toBase(a)
+    end
+
+    if _M.isLiteral(b) then
+        b = _M.toBase(b)
+    end
+
     if a.kind ~= b.kind then
         return false
     end
@@ -482,6 +520,14 @@ function _M.lowEquals(a, b)
         return true
     end
 
+    if _M.isLiteral(a) then
+        a = _M.toBase(a)
+    end
+
+    if _M.isLiteral(b) then
+        b = _M.toBase(b)
+    end
+
     if a.kind ~= b.kind then
         return false
     end
@@ -522,6 +568,7 @@ end
 
 function _M.lowNumEquals(a, b)
 
+
     if #a > 0 and #b > 0 then
         if #a ~= #b then
             return false
@@ -546,12 +593,16 @@ function _M.lowNumEquals(a, b)
         return true
     end
 
+    if _M.isLiteral(a) then
+        a = _M.toBase(a)
+    end
+
+    if _M.isLiteral(b) then
+        b = _M.toBase(b)
+    end
+
     if a.kind ~= b.kind then
-        if not (_M.isLiteral(a) and _M.isBase(b)) and not (_M.isBase(a) and _M.isLiteral(b)) then
-			local baseA, baseB = _M.getBaseRoot(a), _M.getBaseRoot(b)
-			
-            return false
-        end
+        return false
     end
 
     if _M.isBase(a) then
@@ -586,14 +637,6 @@ function _M.lowNumEquals(a, b)
             return true
         end
     end
-end
-
-function _M.canAssign(to, from)
-    if not _M.equals(to, from) then
-        return false
-    end
-
-    return true
 end
 
 function _M.canCast(to, from)

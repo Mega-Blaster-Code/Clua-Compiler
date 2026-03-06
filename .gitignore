@@ -40,3 +40,4 @@ src/semantic/statements.lua
 src/semantic/symbols.lua
 
 out.c
+stdout.txt

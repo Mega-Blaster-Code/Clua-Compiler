@@ -9,6 +9,7 @@ PREPROCESSOR_FILE = $(TEST_DIR)/preprocessor.clua
 AST_FILE = $(TEST_DIR)/ast.txt
 TOKENS_FILE = $(TEST_DIR)/tokens.clua
 OUT_FILE = out.c
+STDOUT_FILE = stdout.txt
 GEN_TARGET = c
 
 LUA_FLAGS = -f@$(INPUT_FILE) -pp@$(PREPROCESSOR_FILE) -ast@$(AST_FILE) -tt@$(TOKENS_FILE) -o@$(OUT_FILE) -target@$(GEN_TARGET)
@@ -28,10 +29,10 @@ LUA_TARGET = $(SRC_PATH)/main.lua
 all: $(TARGET)
 
 lua:
-	@$(LUA) $(LUA_TARGET) $(LUA_FLAGS) > $(OUT_FILE)
+	@$(LUA) $(LUA_TARGET) $(LUA_FLAGS) > $(STDOUT_FILE)
 
 luaP:
-	@$(LUA) $(LUA_TARGET) -SS $(LUA_FLAGS) > $(OUT_FILE)
+	@$(LUA) $(LUA_TARGET) -SS $(LUA_FLAGS) > $(STDOUT_FILE)
 
 asm: $(ASM)
 
