@@ -38,3 +38,5 @@ src/semantic/literal.lua
 src/semantic/semantic.lua
 src/semantic/statements.lua
 src/semantic/symbols.lua
+
+out.c

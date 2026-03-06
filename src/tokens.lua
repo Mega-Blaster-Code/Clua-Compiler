@@ -96,6 +96,7 @@ local tokens = {
 	CONST = "__CONST",
 	VOLATILE = "__VOLATILE",
 	OUTSIDE = "__OUTSIDE",
+	STATIC = "__STATIC",
 }
 
 local keywords = {
@@ -138,6 +139,8 @@ local keywords = {
 	unsigned = tokens.UNSIGNED,
 	const = tokens.CONST,
 	volatile = tokens.VOLATILE,
+	outside = tokens.OUTSIDE,
+	static = tokens.STATIC,
 }
 
 return {tokens, keywords}

@@ -50,6 +50,7 @@ local __qualifiers = {
 	[PRE_TOKENS.SIGNED] = true,
 	[PRE_TOKENS.UNSIGNED] = true,
 	[PRE_TOKENS.OUTSIDE] = true,
+	[PRE_TOKENS.STATIC] = true,
 }
 
 local __modifiers_and_qualifiers = {
@@ -63,6 +64,7 @@ local __modifiers_and_qualifiers = {
 	[PRE_TOKENS.OPEN_BRACKETS] = true,
 	[PRE_TOKENS.CLOSE_BRACKETS] = true,
 	[PRE_TOKENS.ASTERISK] = true,
+	[PRE_TOKENS.STATIC] = true,
 }
 
 local __types_and_modifiers = {
@@ -74,13 +76,9 @@ local __types_and_modifiers = {
 	[PRE_TOKENS.VOID] = true,
 	[PRE_TOKENS.NAME] = true,
 	[PRE_TOKENS.CONST] = true,
-	[PRE_TOKENS.VOLATILE] = true,
-	[PRE_TOKENS.SIGNED] = true,
-	[PRE_TOKENS.UNSIGNED] = true,
 	[PRE_TOKENS.OPEN_BRACKETS] = true,
 	[PRE_TOKENS.CLOSE_BRACKETS] = true,
 	[PRE_TOKENS.ASTERISK] = true,
-	[PRE_TOKENS.OUTSIDE] = true,
 }
 
 local __numbers = {
@@ -909,6 +907,7 @@ function parser:parse_variable_types()
 	local is_short = false
 	local sign = "signed"
 	local outside = false
+	local static = false
 	
 	while self:Texpect(__modifiers_and_qualifiers) do
 		local mod = self:consume()
@@ -987,6 +986,12 @@ function parser:parse_variable_types()
 					self:error("Variable can't have 'outside outside +...'")
 				end
 				outside = true
+			elseif mod.token == PRE_TOKENS.STATIC then
+
+				if static then
+					self:error("Variable can't have 'static static +...'")
+				end
+				static = true
 			end
 
 			table.insert(qualifiers, {
@@ -1014,6 +1019,7 @@ function parser:parse_variable_types()
 		type = type,
 		modifiers = modifiers,
 		qualifiers = {
+			static = static,
 			outside = outside,
 			long_count = long_count,
 			sign = sign,
@@ -1180,7 +1186,7 @@ function parser:parse_struct()
 
 	local variables = {}
 
-	while self:Texpect(__types_and_modifiers) do
+	while self:Texpect(__types) do
 		local decla_var = self:parse_declaration()
 		if decla_var.kind ~= KINDS.VAR_DECLARATION_PROTOTYPE then
 			self:error("Invalid struct declaration sintax")

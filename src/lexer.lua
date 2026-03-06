@@ -30,6 +30,9 @@ do
 		pattern = "^outside$",
 		token = PRE_TOKENS.OUTSIDE
 	}, {
+		pattern = "^static$",
+		token = PRE_TOKENS.STATIC
+	}, {
 		pattern = "^#$",
 		token = PRE_TOKENS.HASH_TAG
 	}, {
