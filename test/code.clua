@@ -68,8 +68,23 @@ end
 
 *----
 
-int [9] x = [1];
+int x = 0;
+
+int * ptr = &x;
+
+int ** ptr_to_ptr = &ptr;
+
+int function add_ptr(int * a, int * b)
+	int trash_value = *(b);
+	int maybe_b = *(&trash_value);
+	return *a + maybe_b;
+end
 
 int function main()
-	return 0;
+	int y = *ptr;
+	int j = **ptr_to_ptr;
+	int result = add_ptr(&y, &j);
+	int * result_ptr = &result;
+	int ** result_ptr_ptr = &result_ptr;
+	return **result_ptr_ptr;
 end

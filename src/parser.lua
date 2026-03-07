@@ -554,7 +554,7 @@ function parser:parse_postfix()
             })
 
         elseif self:expect(PRE_TOKENS.DOT) then
-            self:versionError("Clua version 0.1 don't have structs")
+            --self:versionError("Clua version 0.1 don't have structs")
             self:consume()
 
             local name = self:validate_name(
@@ -567,7 +567,7 @@ function parser:parse_postfix()
             })
 
         elseif self:expect(PRE_TOKENS.POINTER) then
-            self:versionError("Clua version 0.1 don't have pointers")
+            --self:versionError("Clua version 0.1 don't have pointers")
             self:consume()
 
             local name = self:validate_name(
@@ -606,7 +606,7 @@ function parser:parse_unary()
 	end
 
 	if self:expect(PRE_TOKENS.ASTERISK) then
-		self:versionError("Clua version 0.1 don't have pointers")
+		--self:versionError("Clua version 0.1 don't have pointers")
 		local op = self:consume()
 		return {
 			kind = KINDS.POINTER_DEREFERENCE,
@@ -616,7 +616,7 @@ function parser:parse_unary()
 	end
 
 	if self:expect(PRE_TOKENS.AMPERSAND) then
-		self:versionError("Clua version 0.1 don't have address")
+		--self:versionError("Clua version 0.1 don't have address")
 		local op = self:consume()
 		return {
 			kind = KINDS.ADDRESS_OF,

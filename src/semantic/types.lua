@@ -136,7 +136,7 @@ function _M._function(var)
         const = b.const,
         name = var.callee,
         prototype = false,
-        temp = false,
+        temp = true,
         static = var.static,
         outside = var.outside,
         args = {} -- internal use only
@@ -226,10 +226,24 @@ function _M.copyBase(t)
     }
 end
 
+function _M.dereference(p)
+	return p.to
+end
+
+function _M.decay(a)
+	if _M.isArray(a.of) then
+		a.of = _M.decay(a.of)
+	end
+	a.to = a.of
+	a.of = nil
+	a.runtime_size = nil
+	a.compile_time_size = nil
+	return a
+end
+
 local function see_bounds_of_array(t, var)
 	local now = t
 	while true do
-		print(inspect(now.of))
 		if _M.isArray(now) and not _M.isBase(now.of) then
 			if not now.compile_time_size then
 				_SEMANTIC.ARGUMENTS:ERROR("multidimensional array must have bounds for all dimensions except the first")
@@ -244,7 +258,7 @@ local function see_bounds_of_array(t, var)
 	end
 
 	if var.kind == KINDS.VAR_DECLARATION_PROTOTYPE then
-		if not now.compile_time_size then
+		if _M.isArray(t) and not now.compile_time_size then
 			_SEMANTIC.ARGUMENTS:ERROR("assumed to have one element")
 		end
 	end
@@ -516,7 +530,6 @@ function _M.equals(a, b)
 			end
             _SEEMANTIC.ARGUMENTS:ERROR("variable-sized object may not be initialized")
 		else
-			print("high", inspect(a.size), inspect(b.size))
 			if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
 				if a.size ~= b.size then
 					_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
@@ -589,7 +602,7 @@ function _M.lowEquals(a, b)
     end
 
     if a.kind ~= b.kind then
-        return false, "Incompatible KindsLOW"
+        return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
     end
 
     if _M.isBase(a) then
@@ -608,8 +621,6 @@ function _M.lowEquals(a, b)
 			b.size = a.size
 		end
 
-		print(b.size, a.size)
-
         local low, err = _M.lowNumEquals(b.of, a.of)
         if not low then
             return false, err
@@ -621,7 +632,6 @@ function _M.lowEquals(a, b)
 			end
             _SEEMANTIC.ARGUMENTS:ERROR("variable-sized object may not be initialized")
 		else
-			print("low", a.size, b.size)
 			if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
 				if a.size ~= b.size then
 					_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
@@ -709,7 +719,7 @@ function _M.lowNumEquals(a, b)
     end
 
     if a.kind ~= b.kind then
-        return false, "Incompatible KindsNUM"
+        return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
     end
 
     if _M.isBase(a) then
@@ -729,12 +739,11 @@ function _M.lowNumEquals(a, b)
 			b.size = a.size
 		end
 
-		print("low", b.size, a.size)
-
         local low, err = _M.lowNumEquals(b.of, a.of)
         if not low then
             return false, err
         end
+
         local equal = a.const == b.const
         if a.runtime_size or b.runtime_size then
 			if type(a.size) ~= "table" and type(b.size) ~= "table"  and a.size and b.size then
@@ -829,17 +838,20 @@ function _M.canCast(to, from)
 end
 
 function _M.binary(op, a, b)
-    if _M.isPointer(a) and _M.isNumericType(b) and (op == "+" or op == "-") then
+    if _M.isPointer(a) and (_M.isNumericType(b) or _M.isLiteralNumeric(b)) and (op == "+" or op == "-") then
         return true, a
     end
 
-    if _M.isPointer(b) and _M.isNumericType(a) and (op == "+" or op == "-") then
+    if _M.isPointer(b) and (_M.isNumericType(a) or _M.isLiteralNumeric(a)) and (op == "+" or op == "-") then
         return true, b
     end
 
     if _M.isArray(a) or _M.isArray(b) then
         return false, nil
     end
+
+	a.temp = true
+	b.temp = true
 
     if _M.isLiteral(a) then
         a = _M.literalToBase(a)
@@ -851,6 +863,7 @@ function _M.binary(op, a, b)
 
     if _M.isNumericType(a) and _M.isNumericType(b) then
         local result = _M.arithmeticPromotion(a, b)
+		result.temp = true
         if not result then
             return false, nil
         end

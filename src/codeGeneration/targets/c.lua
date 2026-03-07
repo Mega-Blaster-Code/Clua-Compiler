@@ -188,6 +188,27 @@ function _M.buildExpression(node, parent_prec)
         push(expression, node.op)
         push(expression, inner)
         push(expression, ")")
+	
+	elseif node.kind == KINDS.ADDRESS_OF then
+
+        local my_prec = 11
+        local expr = node.expr
+
+        local inner = _M.buildExpression(expr, my_prec)
+
+        push(expression, node.op)
+        push(expression, inner)
+	
+	elseif node.kind == KINDS.POINTER_DEREFERENCE then
+
+        local my_prec = 11
+        local expr = node.expr
+
+        local inner = _M.buildExpression(expr, my_prec)
+
+        push(expression, "*(")
+        push(expression, inner)
+        push(expression, ")")
 
     elseif node.kind == KINDS.ARRAY then
 		push(expression, "{")

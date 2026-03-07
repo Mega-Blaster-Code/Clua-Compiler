@@ -81,11 +81,28 @@ function _M.getExpression(node, no_cast, no_literal_array)
 				_SEMANTIC.SERROR("Can't get address of a temporary value", node)
 			end
 		end
+
+		t = types.pointer(t)
+		
+		return can, t
+	elseif node.kind == KINDS.POINTER_DEREFERENCE then
+		local can, t = _M.getExpression(node.expr, no_cast, no_literal_array)
+		local op = node.op
+
+		if types.isTemp(t) then
+			_SEMANTIC.SERROR("Can't dereference a temporary values", node)
+		end
+
+		if not types.isPointer(t) then
+			_SEMANTIC.SERROR("Can't dereference a non pointer value", node)
+		end
+
+		t = types.dereference(t)
 		
 		return can, t
 	elseif node.kind == KINDS.ARRAY then
 		if no_literal_array then
-			_SEMANTIC.SERROR("Literal array is not allow here")
+			_SEMANTIC.SERROR("Literal array is not allow here", node)
 		end
 
 		local size = #node.values
@@ -108,7 +125,6 @@ function _M.getExpression(node, no_cast, no_literal_array)
 		final_type.size = size
 		final_type.runtime_size = false
 		final_type.compile_time_size = true
-		print(final_type.size)
 
 		return true, final_type
 	elseif node.kind == KINDS.VAR_REF_FIELDS then
