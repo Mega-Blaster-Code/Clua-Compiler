@@ -51,6 +51,7 @@ local __qualifiers = {
 	[PRE_TOKENS.UNSIGNED] = true,
 	[PRE_TOKENS.OUTSIDE] = true,
 	[PRE_TOKENS.STATIC] = true,
+	[PRE_TOKENS.EXUSED] = true,
 }
 
 local __modifiers_and_qualifiers = {
@@ -65,6 +66,7 @@ local __modifiers_and_qualifiers = {
 	[PRE_TOKENS.CLOSE_BRACKETS] = true,
 	[PRE_TOKENS.ASTERISK] = true,
 	[PRE_TOKENS.STATIC] = true,
+	[PRE_TOKENS.EXUSED] = true,
 }
 
 local __types_and_modifiers = {
@@ -908,29 +910,47 @@ function parser:parse_variable_types()
 	local sign = "signed"
 	local outside = false
 	local static = false
+	local exused = false
 	
 	while self:Texpect(__modifiers_and_qualifiers) do
 		local mod = self:consume()
 
 		if mod.token == PRE_TOKENS.ASTERISK then
-			--self:versionError("Clua version 0.1 don't have pointers")
 			table.insert(modifiers, {
 				kind = KINDS.POINTER_MODIFIER
 			})
 
 		elseif mod.token == PRE_TOKENS.OPEN_BRACKETS then
-			local size = 0
-			size = self:parse_expression().values
+			local size = nil
+			if not self:expect(PRE_TOKENS.CLOSE_BRACKETS) then
+				size = self:parse_expression().values
+			end
 
-			if size.kind ~= KINDS.LITERAL_INT then
-				self:error(string.format("Arrays can only have const sizes but not %s", size.kind))
+			local compile_time_size = false
+			local runtime_size = false
+
+			if size then
+				if size.kind == KINDS.VAR_REF then
+					runtime_size = true
+				elseif size.kind == KINDS.LITERAL_INT then
+					local lsize = tonumber(size.value)
+					if not lsize then
+						self:error(string.format("Invalid size for array [%s]", size.kind))
+					end
+					size = lsize
+					compile_time_size = true
+				else
+					self:error(string.format("Invalid size for array"))
+				end
 			end
 
 			self:CEexpect(PRE_TOKENS.CLOSE_BRACKETS)
 
 			table.insert(modifiers, {
 				kind = KINDS.ARRAY_MODIFIER,
-				size = tonumber(size.value)
+				size = size,
+				runtime_size = runtime_size,
+				compile_time_size = compile_time_size,
 			})
 
 		elseif self:token_in_class(mod, __qualifiers) then
@@ -992,6 +1012,12 @@ function parser:parse_variable_types()
 					self:error("Variable can't have 'static static +...'")
 				end
 				static = true
+			elseif mod.token == PRE_TOKENS.EXUSED then
+
+				if exused then
+					self:error("Variable can't have 'exused exused +...'")
+				end
+				exused = true
 			end
 
 			table.insert(qualifiers, {
@@ -1023,6 +1049,7 @@ function parser:parse_variable_types()
 		type = type,
 		modifiers = modifiers,
 		qualifiers = {
+			exused = exused,
 			static = static,
 			outside = outside,
 			long_count = long_count,

@@ -53,27 +53,24 @@ local expression = require("semantic.expressions")
 
 local _M = {}
 
-function _M.analyzeExpression(node, expected)
-	local can, t = expression.getExpression(node)
+function _M.analyzeExpression(node, expected, no_literal_array, prototype)
+	local can, t = expression.getExpression(node, false, no_literal_array)
 
-	if expected then
-		t = types.resolveLiteral(t, expected)
-	else
-		t = types.literalToBase(t)
-	end
+    if expected then
+        t = types.resolveLiteral(t, expected)
+    else
+        t = types.literalToBase(t)
+    end
 
-	if expected then
-		if not types.lowNumEquals(t, expected) then
-			print(inspect(expected), inspect(t))
-			_SEMANTIC.ARGUMENTS:ERROR(string.format(
-				"Expression don't match expected %s %s",
-				inspect(expected),
-				inspect(t)
-			))
-		end
-	end
+    if expected then
+        local can, err = types.lowNumEquals(t, expected)
+        if not can then
+            _SEMANTIC.ARGUMENTS:ERROR(string.format("Expression don't match expected / %s", tostring(err),
+                inspect(expected), inspect(t)))
+        end
+    end
 
-	return true, t
+    return true, t
 end
 
 function _M.analyzeProgram(node)
@@ -82,7 +79,7 @@ end
 
 function _M.analyzeIf(node)
 
-    _M.analyzeExpression(node.condition)
+    _M.analyzeExpression(node.condition, nil, true)
 
     _M.analyzeBlock(node.body)
 
@@ -101,7 +98,7 @@ end
 function _M.analyzeWhile(node)
     -- analyze expression
 
-    _M.analyzeExpression(node.condition)
+    _M.analyzeExpression(node.condition, nil, true)
 
     local _scope = symbols.pushScope()
     _scope.is_loop = true
@@ -119,7 +116,7 @@ function _M.analyzeFor(node)
     _M.analyze(node.init)
 
     -- analyze expression
-    _M.analyzeExpression(node.condition)
+    _M.analyzeExpression(node.condition, nil, true)
 
     _M.analyze(node.step)
 
@@ -177,7 +174,7 @@ function _M.analyzeReturn(node)
         return
     end
 
-    local can, t = _M.analyzeExpression(node.values)
+    local can, t = _M.analyzeExpression(node.values, nil, true)
 
     if not can then
         _SEMANTIC.SERROR("Invalid return expression", node)
@@ -222,12 +219,16 @@ function _M.analyzeAssignment(node)
     local l_value = node.lvalue
     local r_value = node.rvalue
 
-    local can, t = _M.analyzeExpression(l_value, nil, true)
+    local can, t = _M.analyzeExpression(l_value, nil, false)
     _M.analyzeExpression(r_value, t)
 end
 
 function _M.analyzeExtern(node)
-	
+
+end
+
+function _M.analyzeCallExpression(node)
+    _M.analyzeExpression(node, nil, true)
 end
 
 local ANALYZER_BUILD = {
@@ -244,7 +245,8 @@ local ANALYZER_BUILD = {
     [KINDS.VOID_RETURN] = _M.analyzeReturn,
     [KINDS.RAW_DO] = _M.analyzeRawDo,
     [KINDS.PROGRAM] = _M.analyzeProgram,
-	[KINDS.EXTERN] = _M.analyzeExtern,
+    [KINDS.EXTERN] = _M.analyzeExtern,
+    [KINDS.CALL_EXPRESSION] = _M.analyzeCallExpression
 }
 
 function _M.analyze(node)

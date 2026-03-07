@@ -149,13 +149,13 @@ local function get_ifdefinition(self)
 end
 
 local function is_active(self)
-	for i = #self.if_stack, 1, -1 do
-		local stack = self.if_stack[i]
-		if not stack.active then
-			return false
-		end
-	end
-	return true
+    for i = #self.if_stack, 1, -1 do
+        local stack = self.if_stack[i]
+        if not stack.active then
+            return false
+        end
+    end
+    return true
 end
 
 function directives.define(self)
@@ -225,11 +225,11 @@ function directives.ifdef(self)
 
     local result, i = self:search_macro(inti_tokens)
 
-	self.if_stack[#self.if_stack + 1] = {
-		active = result ~= nil,
-		branch_taken = false,
-		elif_branch_taken = result ~= nil,
-	}
+    self.if_stack[#self.if_stack + 1] = {
+        active = result ~= nil,
+        branch_taken = false,
+        elif_branch_taken = result ~= nil
+    }
 end
 
 function directives.elif(self)
@@ -238,19 +238,19 @@ function directives.elif(self)
 
     local result, i = self:search_macro(inti_tokens)
 
-	local top = self.if_stack[#self.if_stack]
+    local top = self.if_stack[#self.if_stack]
 
-	if top.branch_taken then
-		self:error("Can't have two '#elif' after a else")
-	end
+    if top.branch_taken then
+        self:error("Can't have two '#elif' after a else")
+    end
 
-	local something = top.elif_branch_taken
+    local something = top.elif_branch_taken
 
-	self.if_stack[#self.if_stack] = {
-		active = result ~= nil and not something,
-		branch_taken = false,
-		elif_branch_taken = something or result ~= nil
-	}
+    self.if_stack[#self.if_stack] = {
+        active = result ~= nil and not something,
+        branch_taken = false,
+        elif_branch_taken = something or result ~= nil
+    }
 end
 
 function directives.ifndef(self)
@@ -258,58 +258,58 @@ function directives.ifndef(self)
 
     local result, i = self:search_macro(inti_tokens)
 
-	self.if_stack[#self.if_stack + 1] = {
-		active = result == nil,
-		branch_taken = false,
-	}
+    self.if_stack[#self.if_stack + 1] = {
+        active = result == nil,
+        branch_taken = false
+    }
 end
 
-directives["else"] = function (self)
-	local top = self.if_stack[#self.if_stack]
+directives["else"] = function(self)
+    local top = self.if_stack[#self.if_stack]
 
-	if top.branch_taken then
-		self:error("Can't have two '#else' for the same if")
-	end
+    if top.branch_taken then
+        self:error("Can't have two '#else' for the same if")
+    end
 
-	self.if_stack[#self.if_stack] = {
-		active = not top.active and not top.elif_branch_taken,
-		branch_taken = true
-	}
+    self.if_stack[#self.if_stack] = {
+        active = not top.active and not top.elif_branch_taken,
+        branch_taken = true
+    }
 end
 
 function directives.endif(self)
-	if #self.if_stack == 0 then
-		self:error("can't use #endif in global scope")
-	end
+    if #self.if_stack == 0 then
+        self:error("can't use #endif in global scope")
+    end
 
-	self.if_stack[#self.if_stack] = nil
+    self.if_stack[#self.if_stack] = nil
 end
 
 function directives.require(self)
-	local name = self:consume()
-	local file, err
-	if name.token == PRE_TOKENS.STRING_LITERAL then
-		file, err = file2io.open("./" .. name.buf, file2io.modes.read_binary)
-	elseif name.token == PRE_TOKENS.LOWER then
-		name = ""
-		while self:peek() and self:peek().token ~= PRE_TOKENS.GREATER do
-			local n = self:consume()
-			name = name .. n.buf
-		end
-		self:consume()
+    local name = self:consume()
+    local file, err
+    if name.token == PRE_TOKENS.STRING_LITERAL then
+        file, err = file2io.open("./" .. name.buf, file2io.modes.read_binary)
+    elseif name.token == PRE_TOKENS.LOWER then
+        name = ""
+        while self:peek() and self:peek().token ~= PRE_TOKENS.GREATER do
+            local n = self:consume()
+            name = name .. n.buf
+        end
+        self:consume()
 
-		file, err = file2io.open("./" .. name, file2io.modes.read_binary)
-	end
-	if err then
-		self:error(err)
-	end
+        file, err = file2io.open("./" .. name, file2io.modes.read_binary)
+    end
+    if err then
+        self:error(err)
+    end
 
-	local content = file:read()
-	file:close()
+    local content = file:read()
+    file:close()
 
-	local tokens = lexer.tokenize(name, content)
+    local tokens = lexer.tokenize(name, content)
 
-	self:inject(tokens)
+    self:inject(tokens)
 end
 
 function _M.new(tokens, ARGUMENTS, file_path)
@@ -331,7 +331,29 @@ function _M.new(tokens, ARGUMENTS, file_path)
 
     self.stack = nil
 
-    self.macros = {}
+    self.macros = {{
+        init = {{
+            kind = "__TOKEN",
+            token = {
+                buf = "__CLUA",
+                column = 15,
+                line = 1,
+                row = 1,
+                token = "__NAME"
+            }
+        }},
+        expr = {{
+            kind = "__TOKEN",
+            token = {
+                buf = "1",
+                column = 19,
+                line = 1,
+                row = 1,
+                token = "__NUMBER_INT"
+            }
+        }},
+        name = "__CLUA"
+    }}
 
     self.last_token_index = 1
 
@@ -365,7 +387,7 @@ end
 
 function processor:inject(tokens)
     for i = #tokens, 1, -1 do
-		tokens[i].__from_preprocessor = true
+        tokens[i].__from_preprocessor = true
         table.insert(self.tokens, self.pos, tokens[i])
     end
 end
@@ -834,9 +856,9 @@ function processor:push_back(content)
             return
         end
     end
-	if is_active(self) then
-    	self.result[#self.result + 1] = content
-	end
+    if is_active(self) then
+        self.result[#self.result + 1] = content
+    end
 end
 
 function processor:Eexpect(pretoken, length)
@@ -902,13 +924,13 @@ function processor:start()
         end
     end
 
-	if #self.if_stack > 0 then
-		self:error("(#ifdef, #ifndef) scope was not closed")
-	end
+    if #self.if_stack > 0 then
+        self:error("(#ifdef, #ifndef) scope was not closed")
+    end
 
-	for k, token in ipairs(self.result) do -- clear trash from preprocessor
-		token.__from_macro = nil
-	end
+    for k, token in ipairs(self.result) do -- clear trash from preprocessor
+        token.__from_macro = nil
+    end
 
     return self.result
 end

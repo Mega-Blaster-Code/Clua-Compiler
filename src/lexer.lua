@@ -30,6 +30,9 @@ do
 		pattern = "^outside$",
 		token = PRE_TOKENS.OUTSIDE
 	}, {
+		pattern = "^exused$",
+		token = PRE_TOKENS.EXUSED
+	}, {
 		pattern = "^static$",
 		token = PRE_TOKENS.STATIC
 	}, {
@@ -168,8 +171,8 @@ function _M.tokenize(file_path, str)
 		l = l or line
 		c = c or column - 1
 		io.stderr:write(string.format("error_gene while consuming file '%s': (Line %d; Column %d)\n", file_path, l, c))
-		io.stderr:write(string.format("%s", msg))
-		os.exit()
+		io.stderr:write(string.format("%s\n", msg))
+		os.exit(-1)
 	end
 
 	local function consume()
@@ -256,47 +259,27 @@ function _M.tokenize(file_path, str)
 			}
 
 			buf = ""
-
+			push_back("\"")
 			if __RAW_MODE then
-
-				push_back("{")
-				new_token(buf, PRE_TOKENS.OPEN_BRACKETS)
-
 				while peek() ~= "\"" do
 					local c = consume()
+					push_back(c)
 
 					if c == "\\" then
-						local code = consume()
-						if not code then
-							error_gene("Invalid string")
-						end
-						buf = ""
-						push_back(tostring(string.byte(unescape(c .. code))))
-						new_token(buf, PRE_TOKENS.NUMBER_INT)
-					else
-						buf = ""
-						push_back(tostring(string.byte(c)))
-						new_token(buf, PRE_TOKENS.NUMBER_INT)
-
 						if not peek() then
 							error_gene("Invalid string")
 						end
-						
+						local c = consume()
+						push_back(c)
 					end
-					buf = ""
-					push_back(", ")
-					new_token(buf, PRE_TOKENS.COMMA)
+
+					if not peek() then
+						error_gene("Invalid string")
+					end
 				end
-
-				consume()
-
-				buf = ""
-
-				push_back("0")
-				new_token(buf, PRE_TOKENS.NUMBER_INT)
-
-				push_back("}")
-				new_token(buf, PRE_TOKENS.CLOSE_BRACKETS)
+				local c = consume()
+				push_back("\"")
+				new_token(buf, PRE_TOKENS.STRING_LITERAL)
 
 				return true
 			end
@@ -423,6 +406,56 @@ function _M.tokenize(file_path, str)
 						push_back(consume())
 					end
 					new_token(buf, PRE_TOKENS.EXTERN)
+					__RAW_MODE = true
+					__RAW_C = {}
+					return true
+				end
+			else
+
+				local equal = true
+				for i = 1, #enstr do
+					local char = enstr:sub(i, i)
+					local t_char = peek(i - 1)
+					if char ~= t_char then
+						equal = false
+						break
+					end
+				end
+
+				if equal then
+					__RAW_MODE = false
+
+					new_token(table.concat(__RAW_C), PRE_TOKENS.RAW_C)
+
+					for i = 1, #exstr, 1 do
+						consume()
+					end
+
+					return true
+				end
+			end
+		end
+
+		if peek() == "i" then
+			local exstr = "intern"
+			local enstr = "inend"
+			if not __RAW_MODE then
+				local equal = true
+				for i = 1, #exstr do
+					local char = exstr:sub(i, i)
+					local t_char = peek(i - 1)
+
+					if char ~= t_char then
+						equal = false
+						break
+					end
+				end
+
+				if equal then
+					for i = 1, #exstr, 1 do
+						push_back(consume())
+					end
+					new_token(buf, PRE_TOKENS.INTERN)
 					__RAW_MODE = true
 					__RAW_C = {}
 					return true

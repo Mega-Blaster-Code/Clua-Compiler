@@ -37,9 +37,23 @@ do
     AST_SPEC, KINDS = info[1], info[2]
 end
 
+local no_tab = false
+
+local no_semicolan = false
+
 local TABlevel = -1
 
+local function genSemicolan()
+	if no_semicolan then
+		return ""
+	end
+	return ";"
+end
+
 local function genTab()
+	if no_tab then
+		return ""
+	end
 	local f = {}
 	for i = 1, TABlevel do
 		f[#f + 1] = "\t"
@@ -97,9 +111,7 @@ function _M.buildDeclarator(node)
 
 	local modifiers = node.modifiers
 
-	for i = #modifiers, 1, -1 do
-		local mod = modifiers[i]
-
+	for i, mod in ipairs(modifiers) do
 		if mod.kind == KINDS.POINTER_MODIFIER then
 			if modifiers[i - 1] and modifiers[i - 1].kind == KINDS.ARRAY_MODIFIER then
 				name = "(*" .. name .. ")"
@@ -107,7 +119,16 @@ function _M.buildDeclarator(node)
 				name = "*" .. name
 			end
 		elseif mod.kind == KINDS.ARRAY_MODIFIER then
-			name = name .. "[" .. mod.size .. "]"
+			name = name .. "["
+			if mod.size then
+				if not mod.runtime_size then
+					name = name .. mod.size
+				else
+					local size = _M.buildExpression(mod.size)
+					name = name .. size
+				end
+			end
+			name = name  .. "]"
 		end
 	end
 
@@ -193,6 +214,19 @@ function _M.buildExpression(node, parent_prec)
 			end
 		end
 
+	elseif node.kind == KINDS.CALL_EXPRESSION then
+		push(expression, node.callee)
+		push(expression, "(")
+
+		for i, arg in ipairs(node.args) do
+			local expr = _M.buildExpression(arg)
+			push(expression, expr)
+			if i ~= #node.args then
+				pushS(expression, ",")
+			end
+		end
+
+		push(expression, ")")
     elseif node.kind == KINDS.VAR_REF then
         push(expression, node.name)
 	elseif node.kind == KINDS.LITERAL_INT then
@@ -215,9 +249,9 @@ function _M.buildVarDeclaration(node)
 
     push(line, _M.buildExpression(node.values))
 
-    push(line, ";")
+    push(line, genSemicolan())
 
-    return table.concat(line, "")
+    return table.concat(line)
 end
 
 function _M.buildVarPrototypeDeclaration(node)
@@ -227,9 +261,9 @@ function _M.buildVarPrototypeDeclaration(node)
 
     push(line, _M.buildDeclarator(node))
 
-    push(line, ";")
+    push(line, genSemicolan())
 
-    return table.concat(line, "")
+    return table.concat(line)
 end
 
 function _M.buildFunctionDeclaration(node)
@@ -252,7 +286,28 @@ function _M.buildFunctionDeclaration(node)
 
 	push(line, "\n}\n")
 
-    return table.concat(line, "")
+    return table.concat(line)
+end
+
+function _M.buildFunctionPrototypeDeclaration(node)
+	local line = {}
+
+    push(line, _M.buildDeclarator(node))
+
+    push(line, "(")
+
+	for i, arg in ipairs(node.args) do
+		push(line, _M.buildDeclarator(arg))
+		if i ~= #node.args then
+			pushS(line, ",")
+		end
+	end
+
+	push(line, ")")
+
+	push(line, genSemicolan())
+
+    return table.concat(line)
 end
 
 function _M.buildReturn(node)
@@ -264,26 +319,191 @@ function _M.buildReturn(node)
 
 	push(line, _M.buildExpression(node.values))
 
+	push(line, genSemicolan())
+
+	return table.concat(line)
+end
+
+function _M.buildVoidReturn(node)
+	local line = {}
+
+	push(line, genTab())
+
+	push(line, "return")
+
+	push(line, genSemicolan())
+
+	return table.concat(line)
+end
+
+function _M.buildExtern(node)
+	local line = {}
+
+	push(line, node.raw)
+
+	return table.concat(line)
+end
+
+function _M.buildVarAssignment(node)
+	local line = {}
+
+	local left = _M.buildExpression(node.lvalue)
+
+	local right = _M.buildExpression(node.rvalue)
+
+	push(line, genTab())
+
+	pushS(line, left)
+
+	pushS(line, "=")
+
+	push(line, right)
+
+	push(line, genSemicolan())
+
+	return table.concat(line)
+end
+
+function _M.buildRawDo(node)
+	local line = {}
+
+	push(line, genTab())
+
+	push(line, "{\n")
+
+	push(line, _M.emitBlock(node.body))
+
+	push(line, "\n")
+
+	push(line, genTab())
+
+	push(line, "}")
+
+    return table.concat(line)
+end
+
+function _M.buildIf(node)
+	local line = {}
+
+	push(line, genTab())
+
+    push(line, "if(")
+
+	push(line, _M.buildExpression(node.condition))
+
+	push(line, "){\n")
+
+	push(line, _M.emitBlock(node.body))
+
+	push(line, "\n")
+
+	push(line, genTab())
+
+	push(line, "}")
+
+    return table.concat(line)
+end
+
+function _M.buildWhile(node)
+	local line = {}
+
+	push(line, genTab())
+
+    push(line, "while(")
+
+	push(line, _M.buildExpression(node.condition))
+
+	push(line, "){\n")
+
+	push(line, _M.emitBlock(node.body))
+
+	push(line, "\n")
+
+	push(line, genTab())
+
+	push(line, "}")
+
+    return table.concat(line)
+end
+
+function _M.buildFor(node)
+	local line = {}
+
+	push(line, genTab())
+
+    push(line, "for(")
+
+	no_tab = true
+	no_semicolan = true
+
+	push(line, _M.generate(node.init))
+
 	push(line, ";")
 
-	return table.concat(line, "")
+	push(line, _M.generate(node.condition))
+
+	push(line, ";")
+	
+	push(line, _M.generate(node.step))
+
+	no_semicolan = false
+	no_tab = false
+
+	push(line, "){\n")
+
+	push(line, _M.emitBlock(node.body))
+
+	push(line, "\n")
+
+	push(line, genTab())
+
+	push(line, "}")
+
+    return table.concat(line)
+end
+
+function _M.buildCall(node)
+	local line = {}
+	push(line, genTab())
+
+	push(line, node.callee)
+	push(line, "(")
+
+	for i, arg in ipairs(node.args) do
+		local expr = _M.buildExpression(arg)
+		push(line, expr)
+		if i ~= #node.args then
+			pushS(line, ",")
+		end
+	end
+
+	push(line, ")")
+
+	push(line, genSemicolan())
+
+	return table.concat(line)
+end
+
+function _M.buildBreak(node)
+	return genTab() .. "break;"
 end
 
 local ANALYZER_BUILD = {
     [KINDS.FUNCTION_DECLARATION] = _M.buildFunctionDeclaration,
-    [KINDS.FUNCTION_DECLARATION_PROTOTYPE] = _M.analyzeFunction,
-    [KINDS.VAR_ASSIGNMENT] = _M.analyzeAssignment,
+    [KINDS.FUNCTION_DECLARATION_PROTOTYPE] = _M.buildFunctionPrototypeDeclaration,
+    [KINDS.VAR_ASSIGNMENT] = _M.buildVarAssignment,
     [KINDS.VAR_DECLARATION] = _M.buildVarDeclaration,
     [KINDS.VAR_DECLARATION_PROTOTYPE] = _M.buildVarPrototypeDeclaration,
-    [KINDS.IF] = _M.analyzeIf,
-    [KINDS.WHILE] = _M.analyzeWhile,
-    [KINDS.FOR] = _M.analyzeFor,
-    [KINDS.BREAK] = _M.analyzeBreak,
+    [KINDS.IF] = _M.buildIf,
+    [KINDS.WHILE] = _M.buildWhile,
+    [KINDS.FOR] = _M.buildFor,
+    [KINDS.BREAK] = _M.buildBreak,
     [KINDS.RETURN] = _M.buildReturn,
-    [KINDS.VOID_RETURN] = _M.analyzeReturn,
-    [KINDS.RAW_DO] = _M.analyzeRawDo,
-    [KINDS.PROGRAM] = _M.analyzeProgram,
-    [KINDS.EXTERN] = _M.analyzeExtern
+    [KINDS.VOID_RETURN] = _M.buildVoidReturn,
+    [KINDS.RAW_DO] = _M.buildRawDo,
+    [KINDS.EXTERN] = _M.buildExtern,
+	[KINDS.CALL_EXPRESSION] = _M.buildCall,
+	[KINDS.EXPRESSION] = _M.buildExpression,
 }
 
 function _M.generate(node)

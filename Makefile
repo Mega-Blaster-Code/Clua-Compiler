@@ -24,12 +24,16 @@ ASM := $(patsubst $(SRC_PATH)/%.c,$(ASM_PATH)/%.s,$(SRC))
 
 TARGET = main
 
+TARGET_CLUA = code
+
 LUA_TARGET = $(SRC_PATH)/main.lua
 
 all: $(TARGET)
 
 lua:
 	@$(LUA) $(LUA_TARGET) $(LUA_FLAGS) > $(STDOUT_FILE)
+	@$(CC) $(FLAGS) $(OUT_FILE) -o $(TARGET_CLUA)
+	./$(TARGET_CLUA)
 
 luaP:
 	@$(LUA) $(LUA_TARGET) -SS $(LUA_FLAGS) > $(STDOUT_FILE)

@@ -79,7 +79,7 @@ function _M.getNumeric(var)
     return NUMERIC_DEFAULT
 end
 
-function _M.base(var, numeric, sign, outside, static)
+function _M.base(var, numeric, sign, outside, static, exused)
     return {
         kind = TKINDS.BASE,
         type = var.type,
@@ -90,7 +90,8 @@ function _M.base(var, numeric, sign, outside, static)
         name = var.name,
         temp = false,
         outside = outside,
-        static = static
+        static = static,
+        exused = exused
     }
 end
 
@@ -111,7 +112,8 @@ function _M.array(inner)
         volatile = false,
         size = 0,
         of = inner,
-        temp = true
+        temp = true,
+        runtime_size = false
     }
 end
 
@@ -224,6 +226,30 @@ function _M.copyBase(t)
     }
 end
 
+local function see_bounds_of_array(t, var)
+	local now = t
+	while true do
+		print(inspect(now.of))
+		if _M.isArray(now) and not _M.isBase(now.of) then
+			if not now.compile_time_size then
+				_SEMANTIC.ARGUMENTS:ERROR("multidimensional array must have bounds for all dimensions except the first")
+			end
+		end
+
+		if not now.of or not _M.isArray(now.of) then
+			break
+		end
+		
+		now = now.of
+	end
+
+	if var.kind == KINDS.VAR_DECLARATION_PROTOTYPE then
+		if not now.compile_time_size then
+			_SEMANTIC.ARGUMENTS:ERROR("assumed to have one element")
+		end
+	end
+end
+
 function _M.build(var)
 
     if var.kind == KINDS.LITERAL_INT then
@@ -246,11 +272,10 @@ function _M.build(var)
         t = _M._function(var)
         t.prototype = true
     else
-        t = _M.base(var, _M.getNumeric(var), qualifiers.sign, qualifiers.outside, qualifiers.static)
+        t = _M.base(var, _M.getNumeric(var), qualifiers.sign, qualifiers.outside, qualifiers.static, qualifiers.exused)
     end
 
-    for i = #var.modifiers, 1, -1 do
-        local m = var.modifiers[i]
+    for i, m in ipairs(var.modifiers) do
         if m.kind == KINDS.MODIFIER then -- generic modifier
             if m.value == "const" then
                 _M.const(t)
@@ -264,11 +289,16 @@ function _M.build(var)
         elseif m.kind == KINDS.POINTER_MODIFIER then
             t = _M.pointer(t)
         elseif m.kind == KINDS.ARRAY_MODIFIER then
-            t = _M.array(t)
-            t.size = m.size
+            local _t = _M.array(t)
+            _t.size = m.size
+            _t.runtime_size = m.runtime_size
+			_t.compile_time_size = m.compile_time_size
+			t = _t
         end
         ::continue::
     end
+
+	see_bounds_of_array(t, var)
 
     return t
 end
@@ -456,19 +486,47 @@ function _M.equals(a, b)
     end
 
     if a.kind ~= b.kind then
-        return false
+        return false, "Incompatible Kinds"
     end
 
     if _M.isBase(a) then
-        return a.const == b.const and a.type == b.type and a.numeric == b.numeric and a.sign == b.sign
+        return a.const == b.const and a.type == b.type and a.numeric == b.numeric and a.sign == b.sign, "Base"
     end
 
     if _M.isPointer(a) then
-        return a.const == b.const and _M.equals(b.to, a.to)
+        return a.const == b.const and _M.equals(b.to, a.to), "Pointer"
     end
 
     if _M.isArray(a) then
-        return a.const == b.const and _M.equals(b.of, a.of) and a.size == b.size
+		if not a.size then
+			a.size = b.size
+		end
+		if not b.size then
+			b.size = a.size
+		end
+
+        local low, err = _M.lowNumEquals(b.of, a.of)
+        if not low then
+            return false, err
+        end
+        local equal = a.const == b.const
+        if a.runtime_size or b.runtime_size then
+			if type(a.size) ~= "table" and type(b.size) ~= "table"  and a.size and b.size then
+				_SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
+			end
+            _SEEMANTIC.ARGUMENTS:ERROR("variable-sized object may not be initialized")
+		else
+			print("high", inspect(a.size), inspect(b.size))
+			if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+				if a.size ~= b.size then
+					_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+				end
+			else
+				_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays  \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+			end
+		end
+		
+        return equal and low, "array"
     end
 
     if _M.isFunction(a) then
@@ -480,11 +538,11 @@ function _M.equals(a, b)
             local argB = b.args[i]
             local r = _M.lowEquals(argA, argB)
             if not r then
-                return false
+                return false, "Incompatible arguments"
             end
         end
         return a.const == b.const and a.type == b.type and a.numeric == b.numeric and a.sign == b.sign and a.name ==
-                   b.name
+                   b.name, "Function"
     end
 
     if _M.isLiteral(a) then
@@ -492,20 +550,22 @@ function _M.equals(a, b)
             return true
         end
     end
+
+    return nil, "None"
 end
 
 function _M.lowEquals(a, b)
 
     if #a > 0 and #b > 0 then
         if #a ~= #b then
-            return false
+            return false, "Incompatible tableLOW"
         end
     end
 
     if #a > 0 then
         for _, v in ipairs(a) do
             if not _M.lowEquals(v, b) then
-                return false
+                return false, "Low equal?LOW"
             end
         end
         return true
@@ -514,7 +574,7 @@ function _M.lowEquals(a, b)
     if #b > 0 then
         for _, v in ipairs(b) do
             if not _M.lowEquals(v, a) then
-                return false
+                return false, "Low equal?LOW"
             end
         end
         return true
@@ -529,24 +589,70 @@ function _M.lowEquals(a, b)
     end
 
     if a.kind ~= b.kind then
-        return false
+        return false, "Incompatible KindsLOW"
     end
 
     if _M.isBase(a) then
-        return a.type == b.type and a.numeric == b.numeric
+        return a.type == b.type and a.numeric == b.numeric, "baseLOW"
     end
 
     if _M.isPointer(a) then
-        return a.const == b.const and _M.lowEquals(a.to, b.to)
+        return a.const == b.const and _M.lowEquals(a.to, b.to), "pointerLOW"
     end
 
-    if _M.isArray(a) then
-        return a.const == b.const and _M.lowEquals(b.of, a.of)
+	if _M.isArray(a) then
+		if not a.size then
+			a.size = b.size
+		end
+		if not b.size then
+			b.size = a.size
+		end
+
+		print(b.size, a.size)
+
+        local low, err = _M.lowNumEquals(b.of, a.of)
+        if not low then
+            return false, err
+        end
+        local equal = a.const == b.const
+        if a.runtime_size or b.runtime_size then
+			if type(a.size) ~= "table" and type(b.size) ~= "table"  and a.size and b.size then
+				_SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
+			end
+            _SEEMANTIC.ARGUMENTS:ERROR("variable-sized object may not be initialized")
+		else
+			print("low", a.size, b.size)
+			if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+				if a.size ~= b.size then
+					_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+				end
+			else
+				if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+					if a.size ~= b.size and not (a.compile_time_size or b.compile_time_size) then
+						local err = false
+						if a.compile_time_size then
+							if b.size > a.size then
+								err = true
+							end
+						elseif b.compile_time_size then
+							if a.size > b.size then
+								err = true
+							end
+						end
+						if err then
+							_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays NUM \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+						end
+					end
+				end
+			end
+		end
+		
+        return equal and low, "arrayLOW"
     end
 
     if _M.isFunction(a) then
         if #a.args ~= #b.args then
-            return false
+            return false, "Function arguments givenLOW"
         end
 
         for i, argA in ipairs(a.args) do
@@ -564,21 +670,22 @@ function _M.lowEquals(a, b)
             return true
         end
     end
+
+    return nil, "NoneLOW"
 end
 
 function _M.lowNumEquals(a, b)
 
-
     if #a > 0 and #b > 0 then
         if #a ~= #b then
-            return false
+            return false, "Incompatible tableNUM"
         end
     end
 
     if #a > 0 then
         for _, v in ipairs(a) do
             if not _M.lowNumEquals(v, b) then
-                return false
+                return false, "Low equal?NUM"
             end
         end
         return true
@@ -587,7 +694,7 @@ function _M.lowNumEquals(a, b)
     if #b > 0 then
         for _, v in ipairs(b) do
             if not _M.lowNumEquals(v, a) then
-                return false
+                return false, "Low equal?NUM"
             end
         end
         return true
@@ -602,19 +709,70 @@ function _M.lowNumEquals(a, b)
     end
 
     if a.kind ~= b.kind then
-        return false
+        return false, "Incompatible KindsNUM"
     end
 
     if _M.isBase(a) then
-        return a.type == b.type
+        local l, e = a.type == b.type, "baseNUM" .. a.type .. b.type
+        return l, e
     end
 
     if _M.isPointer(a) then
-        return a.const == b.const and _M.lowNumEquals(a.to, b.to)
+        return a.const == b.const and _M.lowNumEquals(a.to, b.to), "pointerNUM"
     end
 
     if _M.isArray(a) then
-        return a.const == b.const and a.size == b.size and _M.lowNumEquals(b.of, a.of)
+		if not a.size then
+			a.size = b.size
+		end
+		if not b.size then
+			b.size = a.size
+		end
+
+		print("low", b.size, a.size)
+
+        local low, err = _M.lowNumEquals(b.of, a.of)
+        if not low then
+            return false, err
+        end
+        local equal = a.const == b.const
+        if a.runtime_size or b.runtime_size then
+			if type(a.size) ~= "table" and type(b.size) ~= "table"  and a.size and b.size then
+				_SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
+			end
+            _SEEMANTIC.ARGUMENTS:ERROR("variable-sized object may not be initialized")
+		else
+			if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+				if a.size ~= b.size then
+					local err = false
+					local size_err = false
+
+					if not (a.compile_time_size or b.compile_time_size) then
+						err = true
+					end
+					
+					local err = false
+					if a.compile_time_size then
+						if b.size > a.size then
+							size_err = true
+						end
+					elseif b.compile_time_size then
+						if a.size > b.size then
+							size_err = true
+						end
+					end
+
+					if err then
+						_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays NUM \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+					end
+					if size_err then
+						_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays NUM \"%s\" \"%s\" excess elements in array initializer", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+					end
+				end
+			end
+		end
+		
+        return equal and low, "arrayNUM"
     end
 
     if _M.isFunction(a) then
@@ -637,6 +795,7 @@ function _M.lowNumEquals(a, b)
             return true
         end
     end
+    return false, "NoneNUM"
 end
 
 function _M.canCast(to, from)
@@ -663,10 +822,10 @@ function _M.canCast(to, from)
     end
 
     if _M.isArray(to) or _M.isArray(from) then
-        return false
+        return false, "array"
     end
 
-    return false
+    return false, "None"
 end
 
 function _M.binary(op, a, b)
@@ -737,6 +896,9 @@ function _M.sizeof(t)
     end
 
     if t.kind == TKINDS.ARRAY then
+        if t.runtime_size then
+            return POINTER_SIZE
+        end
         local inside_size = _M.sizeof(t.of)
 
         return inside_size * t.size

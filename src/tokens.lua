@@ -88,7 +88,7 @@ local tokens = {
 	BOOL = "__BOOL",
 	STRUCT = "__STRUCT",
 	TYPEDEF = "__TYPEDEF",
-	--SIZEOF = "__SIZEOF", -- stdio.h
+	--SIZEOF = "__SIZEOF", -- stdlib.h
 
 	-- ========= QUALIFIERS
 	SIGNED = "__SIGNED",
@@ -96,6 +96,7 @@ local tokens = {
 	CONST = "__CONST",
 	VOLATILE = "__VOLATILE",
 	OUTSIDE = "__OUTSIDE",
+	EXUSED = "__EXUSED",
 	STATIC = "__STATIC",
 }
 

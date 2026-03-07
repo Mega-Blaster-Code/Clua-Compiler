@@ -1,0 +1,14 @@
+#ifndef STDIO_CLUA
+#define STDIO_CLUA
+
+-- __bultin_c_print() -- bultin
+
+#ifdef __CLUA
+	int function printf(char* format);
+#endif
+
+extern
+int printf(char*format, ...);
+exend
+
+#endif

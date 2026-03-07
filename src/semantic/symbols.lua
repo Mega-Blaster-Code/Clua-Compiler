@@ -17,6 +17,8 @@ local _M = {}
 
 _M.scopes = {}
 
+local stdio_used = false
+
 _M.functions = {}
 
 local SCOPE = {}
@@ -70,7 +72,7 @@ function _M.popScope()
 	local s = _M.scopes[#_M.scopes]
 
 	for name, var in pairs(s.variables) do
-		if var.used == false and not var.t.outside then
+		if var.used == false and not var.t.outside and not var.t.exused then
 			_SEMANTIC.ARGUMENTS:WARN(string.format("Variable \"%s\" was never used in scope \"%s\".", name, s.name))
 		end
 	end

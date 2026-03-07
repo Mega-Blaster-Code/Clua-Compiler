@@ -16,13 +16,11 @@ _SEMANTIC = _M
 
 local analyzer = require("semantic.analyzer")
 local expressions = require("semantic.expressions")
-local semantic = require("semantic.semantic")
 local symbols = require("semantic.symbols")
 local types = require("semantic.types")
 
 _M.analyzer = analyzer
 _M.expressions = expressions
-_M.semantic = semantic
 _M.symbols = symbols
 _M.types = types
 
