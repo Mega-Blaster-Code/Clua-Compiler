@@ -4,6 +4,16 @@ local color8 = require("color8")
 
 local operations = 0
 
+local TKINDS = {
+    BASE = "_T_BASE",
+    POINTER = "_T_POINTER",
+    ARRAY = "_T_ARRAY",
+    STRUCT = "_T_STRUCT",
+    FUNCTION = "_T_FUNCTION",
+    LITERAL = "_T_LITERAL"
+}
+
+
 local AST_SPEC, KINDS
 
 do
@@ -76,13 +86,18 @@ function _M.getExpression(node, no_cast, no_literal_array)
 		local can, t = _M.getExpression(node.expr, no_cast, no_literal_array)
 		local op = node.op
 
+
+
 		if op == "&" then
-			if types.isTemp(t) then
+			if types.isTemp(t) and not types.getBaseRoot(t).name then
+				print(inspect(t))
 				_SEMANTIC.SERROR("Can't get address of a temporary value", node)
 			end
 		end
 
 		t = types.pointer(t)
+
+		t.temp = true
 		
 		return can, t
 	elseif node.kind == KINDS.POINTER_DEREFERENCE then
@@ -132,11 +147,15 @@ function _M.getExpression(node, no_cast, no_literal_array)
 		local lbase = base
 		for i, op in ipairs(node.ops) do
 			if op.kind == KINDS.INDEX_FIELD_ACCESS then
-				if not types.isArray(lbase) then
-					_SEMANTIC.SERROR("Can't index a non array values", node)
+				if not types.isArray(lbase) and not types.isPointer(lbase) then
+					_SEMANTIC.SERROR("Can't index a non array/pointer values", node)
 				end
 				_M.getExpression(op.index, no_cast, no_literal_array)
-				lbase = lbase.of
+				if types.isPointer(lbase) then
+					lbase = lbase.to
+				else
+					lbase = lbase.of
+				end
 			end
 		end
 
@@ -170,16 +189,19 @@ function _M.getExpression(node, no_cast, no_literal_array)
 			in_args[i] = t
 		end
 
-		if #in_args > #func.args then
+		local root = types.getBaseRoot(func)
+
+		if #in_args > #root.args then
 			_SEMANTIC.SERROR(string.format("Function Call has too many arguments. expected %d got %d", #func.args, #in_args), node)
 		end
 
-		for i, arg in ipairs(func.args) do
+		for i, arg in ipairs(root.args) do
 			if not in_args[i] then
 				_SEMANTIC.SERROR(string.format("Function Call is missing %d arguments. missing in #%d", #func.args - (i - 1), i), node)
 			end
-			if not types.equals(in_args[i], arg) then
-				_SEMANTIC.SERROR(string.format("Function Call arguments don't match declaration\n%s[%s] != %s[%s]", in_args[i].type, in_args[i].kind, arg.type, arg.kind), node)
+			local equal, err = types.equals(in_args[i], arg)
+			if not equal then
+				_SEMANTIC.SERROR(string.format("Function Call arguments don't match declaration %s\n%s[%s] != %s[%s]",err ,in_args[i].type, in_args[i].kind, arg.type, arg.kind), node)
 			end
 		end
 

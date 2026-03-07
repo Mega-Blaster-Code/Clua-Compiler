@@ -188,7 +188,14 @@ function _M.analyzeReturn(node)
         _SEMANTIC.SERROR("Return type don't match return type of function", node)
     end
 
-    scope.has_return = true
+	local root = types.getBaseRoot(t)
+
+	if types.isPointer(t) and not root.static then
+		_SEMANTIC.SERROR("function returns address of local variable", node)
+	end
+
+	local local_scope = symbols.getLocalScope()
+    local_scope.has_return = true
 end
 
 function _M.analyzeDeclaration(node)
@@ -198,7 +205,8 @@ function _M.analyzeDeclaration(node)
     -- analyze expression
 
     if node.kind == KINDS.VAR_DECLARATION then
-        local can = _M.analyzeExpression(node.values.values, t)
+        local can, t = _M.analyzeExpression(node.values.values, t)
+		t.temp = false
         if not can then
             _SEMANTIC.SERROR("Invalid expression", node)
         end

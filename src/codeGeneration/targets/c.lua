@@ -101,13 +101,12 @@ function _M.buildVarTypes(node)
     return table.concat(line)
 end
 
+function _M.buildDeclaratorInit(node, name)
+	name = name or ""
 
-function _M.buildDeclarator(node)
-    local line = {}
+	local line = {}
 
-    pushS(line, _M.buildVarTypes(node))
-
-	local name = node.name or node.callee
+	pushS(line, _M.buildVarTypes(node))
 
 	local modifiers = node.modifiers
 
@@ -133,6 +132,16 @@ function _M.buildDeclarator(node)
 	end
 
 	push(line, name)
+
+	return table.concat(line)
+end
+
+function _M.buildDeclarator(node)
+    local line = {}
+
+	local name = node.name or node.callee
+
+	push(line, _M.buildDeclaratorInit(node, name))
 
     return table.concat(line)
 end
@@ -170,7 +179,7 @@ function _M.buildExpression(node, parent_prec)
         end
 
     elseif node.kind == KINDS.CAST then
-        local types = _M.buildVarTypes(node.info)
+        local types = _M.buildDeclaratorInit(node.info)
         local value = _M.buildExpression(node.value, 12)
 
         push(expression, "(")

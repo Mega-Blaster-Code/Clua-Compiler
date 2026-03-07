@@ -13,9 +13,9 @@ local _SEMANTIC = _SEMANTIC
 local _M = {}
 
 local NUMERIC_SHORT = 0
-local NUMERIC_LONG = 1
-local NUMERIC_LONGLONG = 2
-local NUMERIC_DEFAULT = 3
+local NUMERIC_DEFAULT = 1
+local NUMERIC_LONG = 2
+local NUMERIC_LONGLONG = 3
 
 local POINTER_SIZE = 8
 
@@ -231,6 +231,10 @@ function _M.dereference(p)
 end
 
 function _M.decay(a)
+	if _M.isPointer(a) then
+		a.to = _M.decay(a)
+		return a
+	end
 	if _M.isArray(a.of) then
 		a.of = _M.decay(a.of)
 	end
@@ -238,6 +242,7 @@ function _M.decay(a)
 	a.of = nil
 	a.runtime_size = nil
 	a.compile_time_size = nil
+	a.kind = TKINDS.POINTER
 	return a
 end
 
@@ -490,8 +495,7 @@ function _M.arithmeticPromotion(a, b)
 end
 
 function _M.equals(a, b)
-
-    if _M.isLiteral(a) then
+	if _M.isLiteral(a) then
         a = _M.toBase(a)
     end
 
@@ -499,12 +503,26 @@ function _M.equals(a, b)
         b = _M.toBase(b)
     end
 
+	if _M.isArray(a) then
+		
+		a = _M.decay(a)
+	end
+
+	if _M.isArray(b) then
+		
+		b = _M.decay(b)
+	end
+
     if a.kind ~= b.kind then
         return false, "Incompatible Kinds"
     end
 
     if _M.isBase(a) then
-        return a.const == b.const and a.type == b.type and a.numeric == b.numeric and a.sign == b.sign, "Base"
+		if a.numeric ~= b.numeric then
+			_SEMANTIC.ARGUMENTS:WARN(string.format("Converting [%d] : [%d]", a.numeric, b.numeric))
+		end
+		
+        return a.type == b.type and a.sign == b.sign, "Base"
     end
 
     if _M.isPointer(a) then
@@ -548,8 +566,16 @@ function _M.equals(a, b)
         end
 
         for i, argA in ipairs(a.args) do
-            local argB = b.args[i]
-            local r = _M.lowEquals(argA, argB)
+            local dargA = argA
+			if _M.isArray(argA) then
+				dargA = _M.decay(argA)
+			end
+            local dargB = b.args[i]
+			if _M.isArray(dargB) then
+				dargB = _M.decay(dargB)
+			end
+
+            local r = _M.lowEquals(dargA, dargB)
             if not r then
                 return false, "Incompatible arguments"
             end
@@ -600,6 +626,16 @@ function _M.lowEquals(a, b)
     if _M.isLiteral(b) then
         b = _M.toBase(b)
     end
+
+	if _M.isArray(a) then
+		
+		a = _M.decay(a)
+	end
+
+	if _M.isArray(b) then
+		
+		b = _M.decay(b)
+	end
 
     if a.kind ~= b.kind then
         return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
@@ -666,8 +702,16 @@ function _M.lowEquals(a, b)
         end
 
         for i, argA in ipairs(a.args) do
-            local argB = b.args[i]
-            local r = _M.lowEquals(argA, argB)
+            local dargA = argA
+			if _M.isArray(argA) then
+				dargA = _M.decay(argA)
+			end
+            local dargB = b.args[i]
+			if _M.isArray(dargB) then
+				dargB = _M.decay(dargB)
+			end
+			
+            local r = _M.lowEquals(dargA, dargB)
             if not r then
                 return false
             end
@@ -718,7 +762,18 @@ function _M.lowNumEquals(a, b)
         b = _M.toBase(b)
     end
 
+	if _M.isArray(a) then
+		
+		a = _M.decay(a)
+	end
+
+	if _M.isArray(b) then
+		
+		b = _M.decay(b)
+	end
+
     if a.kind ~= b.kind then
+
         return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
     end
 
@@ -728,6 +783,11 @@ function _M.lowNumEquals(a, b)
     end
 
     if _M.isPointer(a) then
+		local baseA = _M.getBaseRoot(a)
+		local baseB = _M.getBaseRoot(b)
+		if baseA.type == "void" or baseB.type == "void" then
+			return a.const == b.const, "pointerNUM"
+		end
         return a.const == b.const and _M.lowNumEquals(a.to, b.to), "pointerNUM"
     end
 
@@ -788,10 +848,17 @@ function _M.lowNumEquals(a, b)
         if #a.args ~= #b.args then
             return false
         end
-
+		
         for i, argA in ipairs(a.args) do
-            local argB = b.args[i]
-            local r = _M.lowNumEquals(argA, argB)
+			local dargA = argA
+			if _M.isArray(argA) then
+				dargA = _M.decay(argA)
+			end
+            local dargB = b.args[i]
+			if _M.isArray(dargB) then
+				dargB = _M.decay(dargB)
+			end
+            local r = _M.lowNumEquals(dargA, dargB)
             if not r then
                 return false
             end
@@ -838,11 +905,11 @@ function _M.canCast(to, from)
 end
 
 function _M.binary(op, a, b)
-    if _M.isPointer(a) and (_M.isNumericType(b) or _M.isLiteralNumeric(b)) and (op == "+" or op == "-") then
+    if _M.isPointer(a) and (_M.isNumericType(b) or _M.isLiteralNumeric(b)) and (op == "+" or op == "-") and b.type == "int" then
         return true, a
     end
 
-    if _M.isPointer(b) and (_M.isNumericType(a) or _M.isLiteralNumeric(a)) and (op == "+" or op == "-") then
+    if _M.isPointer(b) and (_M.isNumericType(a) or _M.isLiteralNumeric(a)) and (op == "+" or op == "-") and a.type == "int" then
         return true, b
     end
 
