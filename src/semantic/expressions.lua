@@ -87,10 +87,8 @@ function _M.getExpression(node, no_cast, no_literal_array)
 		local op = node.op
 
 
-
 		if op == "&" then
 			if types.isTemp(t) and not types.getBaseRoot(t).name then
-				print(inspect(t))
 				_SEMANTIC.SERROR("Can't get address of a temporary value", node)
 			end
 		end
@@ -199,6 +197,7 @@ function _M.getExpression(node, no_cast, no_literal_array)
 			if not in_args[i] then
 				_SEMANTIC.SERROR(string.format("Function Call is missing %d arguments. missing in #%d", #func.args - (i - 1), i), node)
 			end
+			print(inspect(in_args[i], arg))
 			local equal, err = types.equals(in_args[i], arg)
 			if not equal then
 				_SEMANTIC.SERROR(string.format("Function Call arguments don't match declaration %s\n%s[%s] != %s[%s]",err ,in_args[i].type, in_args[i].kind, arg.type, arg.kind), node)

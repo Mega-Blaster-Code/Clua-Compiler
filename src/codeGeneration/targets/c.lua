@@ -518,6 +518,19 @@ function _M.buildBreak(node)
 	return genTab() .. "break;"
 end
 
+function _M.buildIntern(node)
+	--_M.emit(node)
+	local line = {}
+
+	push(line, "/* INTERN\n")
+
+	push(line, _M.emit(node))
+
+	push(line, "\n*/")
+
+	return table.concat(line)
+end
+
 local ANALYZER_BUILD = {
     [KINDS.FUNCTION_DECLARATION] = _M.buildFunctionDeclaration,
     [KINDS.FUNCTION_DECLARATION_PROTOTYPE] = _M.buildFunctionPrototypeDeclaration,
@@ -534,6 +547,7 @@ local ANALYZER_BUILD = {
     [KINDS.EXTERN] = _M.buildExtern,
 	[KINDS.CALL_EXPRESSION] = _M.buildCall,
 	[KINDS.EXPRESSION] = _M.buildExpression,
+	[KINDS.INTERN] = _M.buildIntern,
 }
 
 function _M.generate(node)

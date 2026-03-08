@@ -36,6 +36,12 @@ do
 		pattern = "^static$",
 		token = PRE_TOKENS.STATIC
 	}, {
+		pattern = "^intern$",
+		token = PRE_TOKENS.INTERN
+	}, {
+		pattern = "^inend$",
+		token = PRE_TOKENS.INEND
+	}, {
 		pattern = "^#$",
 		token = PRE_TOKENS.HASH_TAG
 	}, {
@@ -259,8 +265,8 @@ function _M.tokenize(file_path, str)
 			}
 
 			buf = ""
-			push_back("\"")
 			if __RAW_MODE then
+				push_back("\"")
 				while peek() ~= "\"" do
 					local c = consume()
 					push_back(c)
@@ -296,15 +302,17 @@ function _M.tokenize(file_path, str)
 						error_gene("Invalid string")
 					end
 					new_token(tostring(string.byte(unescape(c .. code))), PRE_TOKENS.NUMBER_INT)
+					
 				else
 					new_token(tostring(string.byte(c)), PRE_TOKENS.NUMBER_INT)
 					if not peek() then
 						error_gene("Invalid string")
 					end
-					push_back(",")
-					new_token(buf, PRE_TOKENS.COMMA)
 				end
+				push_back(",")
+				new_token(buf, PRE_TOKENS.COMMA)
 			end
+
 
 			consume()
 
@@ -436,56 +444,6 @@ function _M.tokenize(file_path, str)
 			end
 		end
 
-		if peek() == "i" then
-			local exstr = "intern"
-			local enstr = "inend"
-			if not __RAW_MODE then
-				local equal = true
-				for i = 1, #exstr do
-					local char = exstr:sub(i, i)
-					local t_char = peek(i - 1)
-
-					if char ~= t_char then
-						equal = false
-						break
-					end
-				end
-
-				if equal then
-					for i = 1, #exstr, 1 do
-						push_back(consume())
-					end
-					new_token(buf, PRE_TOKENS.INTERN)
-					__RAW_MODE = true
-					__RAW_C = {}
-					return true
-				end
-			else
-
-				local equal = true
-				for i = 1, #enstr do
-					local char = enstr:sub(i, i)
-					local t_char = peek(i - 1)
-					if char ~= t_char then
-						equal = false
-						break
-					end
-				end
-
-				if equal then
-					__RAW_MODE = false
-
-					new_token(table.concat(__RAW_C), PRE_TOKENS.RAW_C)
-
-					for i = 1, #exstr, 1 do
-						consume()
-					end
-
-					return true
-				end
-			end
-		end
-
 		if peek():match("[%a_]") then
 			push_back(consume())
 			while peek() and peek():match("[%w_]") do
@@ -501,6 +459,14 @@ function _M.tokenize(file_path, str)
 			end
 			return false
 		end
+
+		--if peek():match("@") and peek(1) and peek(1):match("[%a]") then
+		--	push_back(consume())
+		--	while peek() and peek():match("[%a]") do
+		--		push_back(consume())
+		--	end
+		--	return false
+		--end
 
 		if peek():match("#") then
 			push_back(consume())

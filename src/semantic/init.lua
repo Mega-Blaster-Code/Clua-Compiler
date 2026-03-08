@@ -87,6 +87,17 @@ function _M.new(file_path, AST_TREE, ARGUMENTS)
 		ARGUMENTS:ERROR(table.concat(f_msg, "\n"))
 	end
 
+	function _s.SWARN(msg, node)
+		local f_msg = {}
+		if node and node.__line_info then
+			f_msg[#f_msg + 1] = string.format("line: %d, column: %d", node.__line_info.line, node.__line_info.column)
+		end
+		f_msg[#f_msg + 1] = msg
+
+		ARGUMENTS:WARN(table.concat(f_msg, "\n"))
+	end
+
+
 	return self
 end
 

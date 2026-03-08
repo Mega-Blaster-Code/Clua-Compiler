@@ -200,6 +200,7 @@ function _M.toBase(lit)
         const = true,
         temp = lit.temp,
         outside = lit.outside,
+		fromInit = lit.fromInit,
         static = lit.static
     }
 end
@@ -222,6 +223,7 @@ function _M.copyBase(t)
         const = false,
         temp = false,
         outside = t.outside,
+		fromInit = t.fromInit,
         static = t.static
     }
 end
@@ -231,6 +233,9 @@ function _M.dereference(p)
 end
 
 function _M.decay(a)
+	if not _M.isArray(a) and not _M.isPointer(a) then
+		return a
+	end
 	if _M.isPointer(a) then
 		a.to = _M.decay(a)
 		return a
@@ -350,6 +355,8 @@ function _M.getBaseRoot(t)
     if t.kind == TKINDS.FUNCTION then
         return t
     end
+
+	return t
 end
 
 function _M.isPointer(t)
@@ -519,7 +526,10 @@ function _M.equals(a, b)
 
     if _M.isBase(a) then
 		if a.numeric ~= b.numeric then
-			_SEMANTIC.ARGUMENTS:WARN(string.format("Converting [%d] : [%d]", a.numeric, b.numeric))
+			local baseA = _M.getBaseRoot(a)
+			local baseB = _M.getBaseRoot(b)
+			
+			_SEMANTIC.ARGUMENTS:WARN(string.format("Converting [%d] : [%d]", baseA.numeric, baseB.numeric))
 		end
 		
         return a.type == b.type and a.sign == b.sign, "Base"
@@ -778,6 +788,7 @@ function _M.lowNumEquals(a, b)
     end
 
     if _M.isBase(a) then
+		
         local l, e = a.type == b.type, "baseNUM" .. a.type .. b.type
         return l, e
     end
@@ -785,10 +796,12 @@ function _M.lowNumEquals(a, b)
     if _M.isPointer(a) then
 		local baseA = _M.getBaseRoot(a)
 		local baseB = _M.getBaseRoot(b)
+		print(inspect(baseA), inspect(baseB))
 		if baseA.type == "void" or baseB.type == "void" then
-			return a.const == b.const, "pointerNUM"
+			return "pointerNUM void"
 		end
-        return a.const == b.const and _M.lowNumEquals(a.to, b.to), "pointerNUM"
+		local can, err = _M.lowNumEquals(a.to, b.to)
+        return can, err
     end
 
     if _M.isArray(a) then

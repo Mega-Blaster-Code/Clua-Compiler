@@ -1,14 +1,34 @@
 #ifndef STDIO_CLUA
 #define STDIO_CLUA
 
--- __bultin_c_print() -- bultin
+int function printInt(int _v);
+int function printIntLong(int long _v);
+int function printIntLongLong(int long long _v);
+int function printIntShort(int short _v);
+int function printChar(char _v);
+int function printFloat(float _v);
+int function printDouble(double _v);
+int function printDoubleLong(double long _v);
+int function printString(char *_str);
+int function printPointer(void *_pointer);
 
-#ifdef __CLUA
-	int function printf(char* format);
-#endif
+int function printCustom(char* _fmt, void *_pointer);
 
 extern
-int printf(char*format, ...);
+#include <stdio.h>
+
+#define printInt(a)         printf("%d", (a))
+#define printIntLong(a)     printf("%ld", (a))
+#define printIntLongLong(a) printf("%lld", (a))
+#define printIntShort(a)    printf("%hd", (a))
+#define printChar(a)        printf("%c", (a))
+#define printFloat(a)       printf("%f", (a))
+#define printDouble(a)      printf("%f", (a))
+#define printDoubleLong(a)  printf("%Lf", (a))
+#define printString(a)      printf("%s", (a))
+#define printPointer(a)     printf("%p", (void*)(a))
+#define printCustom(a, b)   printf(a, *a)
+
 exend
 
 #endif

@@ -1351,6 +1351,30 @@ function parser:parse_statement()
 		return
 	end
 
+	if self:expect(PRE_TOKENS.INTERN) then -- extern 'extern ... exend'
+		self:consume()
+		local body = {
+			__INTERN = true,
+		}
+		self:push_back({
+			kind = KINDS.INTERN,
+			body = body,
+			__INTERN = true,
+		})
+		self:new_scope(body)
+		return
+	end
+
+	if self:expect(PRE_TOKENS.INEND) then -- extern 'extern ... exend'
+		self:consume()
+		local local_scope = self:get_local_scope()
+		if not local_scope.__INTERN and not (local_scope.body or {}).__INTERN then
+			self:error(string.format("Unexpected '%s'", local_scope.__INTERN))
+		end
+		self:end_scope()
+		return
+	end
+
 	if self:expect(PRE_TOKENS.IF) then -- if 'if (condition) then ... end'
 		local _if = self:parse_if()
 		self:push_back(_if)

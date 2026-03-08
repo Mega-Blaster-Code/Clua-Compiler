@@ -149,7 +149,7 @@ function _M.analyzeFunction(node)
     _scope.is_function = t
 
     for i, lnode in ipairs(node.args) do
-        _M.analyze(lnode)
+        _M.analyze(lnode, {fromInit = true})
     end
 
     _M.analyzeLocalBlock(node.body)
@@ -190,19 +190,19 @@ function _M.analyzeReturn(node)
 
 	local root = types.getBaseRoot(t)
 
-	if types.isPointer(t) and not root.static then
-		_SEMANTIC.SERROR("function returns address of local variable", node)
+	if types.isPointer(t) and not root.static and not root.fromInit then
+		
+		_SEMANTIC.SWARN("function is maybe returning a address of local variable", node)
 	end
 
 	local local_scope = symbols.getLocalScope()
     local_scope.has_return = true
 end
 
-function _M.analyzeDeclaration(node)
+function _M.analyzeDeclaration(node, info)
+	info = info or {}
     local t = types.build(node)
     local base = types.getBaseRoot(t)
-
-    -- analyze expression
 
     if node.kind == KINDS.VAR_DECLARATION then
         local can, t = _M.analyzeExpression(node.values.values, t)
@@ -211,6 +211,8 @@ function _M.analyzeDeclaration(node)
             _SEMANTIC.SERROR("Invalid expression", node)
         end
     end
+
+	base.fromInit = info.fromInit == true
 
     symbols.declareVariable(base.name, t)
 end
@@ -239,6 +241,10 @@ function _M.analyzeCallExpression(node)
     _M.analyzeExpression(node, nil, true)
 end
 
+function _M.analyzeIntern(node)
+	_M.analyzeLocalBlock(node.body)
+end
+
 local ANALYZER_BUILD = {
     [KINDS.FUNCTION_DECLARATION] = _M.analyzeFunction,
     [KINDS.FUNCTION_DECLARATION_PROTOTYPE] = _M.analyzeFunction,
@@ -254,10 +260,11 @@ local ANALYZER_BUILD = {
     [KINDS.RAW_DO] = _M.analyzeRawDo,
     [KINDS.PROGRAM] = _M.analyzeProgram,
     [KINDS.EXTERN] = _M.analyzeExtern,
-    [KINDS.CALL_EXPRESSION] = _M.analyzeCallExpression
+    [KINDS.CALL_EXPRESSION] = _M.analyzeCallExpression,
+	[KINDS.INTERN] = _M.analyzeIntern,
 }
 
-function _M.analyze(node)
+function _M.analyze(node, info)
     operations = operations + 1
 
     local analyzer = ANALYZER_BUILD[node.kind]
@@ -266,7 +273,7 @@ function _M.analyze(node)
         _SEMANTIC.SERROR(string.format("Kind %s was unexpected", tostring(node.kind)), node)
     end
 
-    analyzer(node)
+    analyzer(node, info)
 end
 
 function _M.analyzeLocalBlock(node)

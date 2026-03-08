@@ -31,6 +31,8 @@ local kinds = {
 	FOR = "__FOR",
 	BREAK = "__BREAK",
 	EXTERN = "__EXTERN",
+	INTERN = "__INTERN",
+	INEND = "__INEND",
 	RETURN = "__RETURN",
 	VOID_RETURN = "__VOID_RETURN",
 	

@@ -73,7 +73,7 @@ function _M.popScope()
 
 	for name, var in pairs(s.variables) do
 		if var.used == false and not var.t.outside and not var.t.exused then
-			_SEMANTIC.ARGUMENTS:WARN(string.format("Variable \"%s\" was never used in scope \"%s\".", name, s.name))
+			_SEMANTIC.SWARN(string.format("Variable \"%s\" was never used in scope \"%s\".", name, s.name), node)
 		end
 	end
 

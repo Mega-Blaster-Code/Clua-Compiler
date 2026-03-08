@@ -49,6 +49,8 @@ local tokens = {
 	ENUM = "__ENUM",
 	EXTERN = "__EXTERN",
 	EXEND = "__EXEND",
+	INTERN = "__INTERN",
+	INEND = "__INEND",
 
 	-- ========= MATH
 
