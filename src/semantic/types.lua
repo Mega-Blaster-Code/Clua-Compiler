@@ -63,7 +63,7 @@ end
 
 function _M.getNumeric(var)
     if not _M.isNumeric(var) then
-        return nil
+        return NUMERIC_DEFAULT
     end
     local quali = var.qualifiers
     if quali.is_short then
@@ -502,6 +502,7 @@ function _M.arithmeticPromotion(a, b)
 end
 
 function _M.equals(a, b)
+	print(inspect(a), inspect(b))
 	if _M.isLiteral(a) then
         a = _M.toBase(a)
     end

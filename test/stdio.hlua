@@ -1,6 +1,7 @@
 #ifndef STDIO_CLUA
 #define STDIO_CLUA
 
+intern
 int function printInt(int _v);
 int function printIntLong(int long _v);
 int function printIntLongLong(int long long _v);
@@ -11,8 +12,7 @@ int function printDouble(double _v);
 int function printDoubleLong(double long _v);
 int function printString(char *_str);
 int function printPointer(void *_pointer);
-
-int function printCustom(char* _fmt, void *_pointer);
+inend
 
 extern
 #include <stdio.h>
