@@ -301,7 +301,7 @@ function _M.build(var)
 
     if var.kind == KINDS.STRUCT_DECLARATION or var.kind == KINDS.STRUCT_DECLARATION_PROTOTYPE then
         t = _M.struct(var)
-        if var.kind == KINDS.STRUCT_DECLARATION_PROTOTYP then
+        if var.kind == KINDS.STRUCT_DECLARATION_PROTOTYPE then
             t.prototype = true
         else
             t = _M.fillStruct(var, t)
@@ -310,10 +310,16 @@ function _M.build(var)
     end
 
     if var.kind == KINDS.FUNCTION_DECLARATION then
-        t = _M._function(var)
+		t = _M._function(var)
+        if qualifiers.struct then
+            t.kind = TKINDS.STRUCT
+		end
         t.prototype = false
     elseif var.kind == KINDS.FUNCTION_DECLARATION_PROTOTYPE then
-        t = _M._function(var)
+		t = _M._function(var)
+		if qualifiers.struct then
+            t.kind = TKINDS.STRUCT
+		end
         t.prototype = true
     else
         if qualifiers.struct then
@@ -561,7 +567,8 @@ function _M.equals(a, b)
     end
 
     if _M.isPointer(a) then
-        return a.const == b.const and _M.equals(b.to, a.to), "Pointer"
+		local can, err = _M.equals(b.to, a.to)
+        return a.const == b.const and can, err
     end
 
     if _M.isArray(a) then
@@ -599,7 +606,7 @@ function _M.equals(a, b)
 
     if _M.isFunction(a) then
         if #a.args ~= #b.args then
-            return false
+            return false, "Dif Args"
         end
 
         for i, argA in ipairs(a.args) do
@@ -625,6 +632,10 @@ function _M.equals(a, b)
         if a.type == b.type then
             return true
         end
+    end
+
+	if _M.isStruct(a) then
+        return a.type == b.type, string.format("Struct type \"%s\" \"%s\"", a.type, b.type)
     end
 
     return nil, "None"
@@ -750,9 +761,9 @@ function _M.lowEquals(a, b)
                 dargB = _M.decay(dargB)
             end
 
-            local r = _M.lowEquals(dargA, dargB)
+            local r, err = _M.lowEquals(dargA, dargB)
             if not r then
-                return false
+                return false, err
             end
         end
         return a.type == b.type and a.numeric == b.numeric and a.sign == b.sign and a.name == b.name
@@ -890,7 +901,7 @@ function _M.lowNumEquals(a, b)
 
     if _M.isFunction(a) then
         if #a.args ~= #b.args then
-            return false
+            return false, "Dif args"
         end
 
         for i, argA in ipairs(a.args) do
@@ -902,9 +913,9 @@ function _M.lowNumEquals(a, b)
             if _M.isArray(dargB) then
                 dargB = _M.decay(dargB)
             end
-            local r = _M.lowNumEquals(dargA, dargB)
+            local r,err = _M.lowNumEquals(dargA, dargB)
             if not r then
-                return false
+                return false,err
             end
         end
         return a.type == b.type and a.sign == b.sign and a.name == b.name
@@ -1014,10 +1025,7 @@ function _M.unary(op, a) -- can, result (very restrict, needs cast for everythin
 end
 
 function _M.isPrimitive(t)
-    local type = t.type
-    if t.to or t.of then
-        return _M.isPrimitive(t.to or t.of)
-    end
+    local type = _M.getBaseRoot(t).type
     return type == "int" or type == "float" or type == "char" or type == "double" or type == "void"
 end
 

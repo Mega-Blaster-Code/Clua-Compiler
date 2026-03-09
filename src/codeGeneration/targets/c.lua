@@ -219,7 +219,7 @@ function _M.buildExpression(node, parent_prec)
 
         local inner = _M.buildExpression(expr, my_prec)
 
-        push(expression, "*(")
+        push(expression, "(*")
         push(expression, inner)
         push(expression, ")")
 
@@ -247,6 +247,9 @@ function _M.buildExpression(node, parent_prec)
 				push(expression, "]")
 			elseif op.kind == KINDS.FIELD_ACCESS then
 				push(expression, ".")
+				push(expression, op.name)
+			elseif op.kind == KINDS.POINTER_FIELD_ACCESS then
+				push(expression, "->")
 				push(expression, op.name)
 			end
 		end
@@ -580,6 +583,21 @@ function _M.buildStruct(node)
 	return table.concat(line)
 end
 
+function _M.buildStructPrototype(node)
+	local line = {}
+
+	TABlevel = TABlevel + 1
+
+	pushS(line, "struct")
+	push(line, node.name)
+
+	push(line, ";\n")
+
+	TABlevel = TABlevel - 1
+
+	return table.concat(line)
+end
+
 local ANALYZER_BUILD = {
     [KINDS.FUNCTION_DECLARATION] = _M.buildFunctionDeclaration,
     [KINDS.FUNCTION_DECLARATION_PROTOTYPE] = _M.buildFunctionPrototypeDeclaration,
@@ -598,6 +616,7 @@ local ANALYZER_BUILD = {
 	[KINDS.EXPRESSION] = _M.buildExpression,
 	[KINDS.INTERN] = _M.buildIntern,
 	[KINDS.STRUCT_DECLARATION] = _M.buildStruct,
+	[KINDS.STRUCT_DECLARATION_PROTOTYPE] = _M.buildStructPrototype,
 }
 
 function _M.generate(node)

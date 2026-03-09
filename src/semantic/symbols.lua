@@ -122,7 +122,14 @@ end
 
 function _M.declareStruct(name, t)
 	if _M.strucs[name] then
-		_SEMANTIC.SERROR(string.format("Struct \"%s\" is already declared", name))
+		local f = _M.strucs[name]
+		if f.prototype and t.prototype then
+			_SEMANTIC.SERROR(string.format("Struct \"%s\" has two prototypes", name))
+		end
+
+		if not f.prototype then
+			_SEMANTIC.SERROR(string.format("Struct \"%s\" is already declared", name))
+		end
 	end
 
 	_M.strucs[name] = t
@@ -155,7 +162,7 @@ function _M.declareFunction(name, t)
 		end
 
 		if f.prototype then
-			if not types.lowEquals(f, t) then
+			if not types.lowNumEquals(f, t) then
 				_SEMANTIC.SERROR(string.format("Function \"%s\" prototype don't match declaration", name))
 			end
 		end

@@ -170,13 +170,31 @@ function _M.getExpression(node, no_cast, no_literal_array, original_node)
 				if not types.isStruct(lbase) then
 					_SEMANTIC.SERROR("Can't access field of a non struct value", node)
 				end
-				local struct = getStruct(lbase.type)
 
-				print(inspect(node))
+				local struct = getStruct(lbase.type)
 
 				if not struct.fields[op.name] then
 					_SEMANTIC.SERROR(string.format("Field \"%s\" in struct \"%s\" don't exist", op.name, struct.type), node)
 				end
+				lbase = struct.fields[op.name]
+			elseif op.kind == KINDS.POINTER_FIELD_ACCESS then	
+
+				if not types.isPointer(lbase) then
+					_SEMANTIC.SERROR(string.format("struct is not a pointer"), node)
+				end
+
+				if not types.isStruct(lbase.to) then
+					_SEMANTIC.SERROR("Can't access pointer field of a non struct value", node)
+				end
+
+				local struct = getStruct(lbase.to.type)
+				
+				if not struct.fields[op.name] then
+					_SEMANTIC.SERROR(string.format("Pointer Field \"%s\" in struct \"%s\" don't exist", op.name, struct.type), node)
+				end
+
+				local dest = struct.fields[op.name]
+
 				lbase = struct.fields[op.name]
 			end
 		end
@@ -231,6 +249,10 @@ function _M.getExpression(node, no_cast, no_literal_array, original_node)
 	elseif node.kind == KINDS.STRUCT_INIT then
 		local struct = getStruct(original_node.type)
 		struct.type = original_node.type
+
+		if struct.prototype then
+			_SEMANTIC.SERROR(string.format("Struct \"%s\" is a prototype", original_node.type), node)
+		end
 
 		for i, var in ipairs(node.values) do
 			if not struct.fields[var.name] then

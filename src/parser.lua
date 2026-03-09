@@ -904,7 +904,7 @@ function parser:parse_variable_types()
 
 	local struct = false
 
-	struct = type ~= "int" and type ~= "float" and type ~= "double" and type ~= "char"
+	struct = type ~= "int" and type ~= "float" and type ~= "double" and type ~= "char" and type ~= "void"
 
 	local modifiers = {}
 	local qualifiers = {}
@@ -1298,8 +1298,34 @@ function parser:parse_return()
 	}
 end
 
+function parser:isAssignment()
+	local first = self:expect(PRE_TOKENS.NAME) or self:expect(PRE_TOKENS.ASTERISK) or self:expect(PRE_TOKENS.OPEN_PARENTHESES)
+	if not first then
+		return false
+	end
+	local offset = 0
+	while self:peek(offset) and self:peek(offset).token ~= PRE_TOKENS.EQUAL_ASSIGNING do
+		local t = self:peek(offset)
+		if not t then
+			self:error("Can't peek " .. offset)
+		end
+		t = t.token
+		if t == PRE_TOKENS.FUNCTION then
+			return false
+		end
+		if self:token_in_class(t, __modifiers_and_qualifiers) then
+			return false
+		end
+		if self:token_in_class(t, __types) then
+			return false
+		end
+		offset = offset + 1
+	end
+	return true
+end
+
 function parser:parse_statement()
-	if self:expect(PRE_TOKENS.NAME) or self:expect(PRE_TOKENS.ASTERISK) or self:expect(PRE_TOKENS.OPEN_PARENTHESES) then
+	if self:isAssignment() then
 		if self:expect(PRE_TOKENS.NAME) and self:expect(PRE_TOKENS.OPEN_PARENTHESES, 1) then -- function call 'test();'
 			self:push_back(self:parse_call())
 			if self.use_semicolan then
