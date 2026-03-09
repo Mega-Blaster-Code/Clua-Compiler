@@ -120,8 +120,9 @@ end
 function _M.struct(var)
     return {
         kind = TKINDS.STRUCT,
-        fields = var.values.values,
-        temp = false
+        fields = {},
+        temp = false,
+        type = var.type
     }
 end
 
@@ -200,7 +201,7 @@ function _M.toBase(lit)
         const = true,
         temp = lit.temp,
         outside = lit.outside,
-		fromInit = lit.fromInit,
+        fromInit = lit.fromInit,
         static = lit.static
     }
 end
@@ -223,59 +224,68 @@ function _M.copyBase(t)
         const = false,
         temp = false,
         outside = t.outside,
-		fromInit = t.fromInit,
+        fromInit = t.fromInit,
         static = t.static
     }
 end
 
 function _M.dereference(p)
-	return p.to
+    return p.to
 end
 
 function _M.decay(a)
-	if not _M.isArray(a) and not _M.isPointer(a) then
-		return a
-	end
-	if _M.isPointer(a) then
-		a.to = _M.decay(a)
-		return a
-	end
-	if _M.isArray(a.of) then
-		a.of = _M.decay(a.of)
-	end
-	a.to = a.of
-	a.of = nil
-	a.runtime_size = nil
-	a.compile_time_size = nil
-	a.kind = TKINDS.POINTER
-	return a
+    if not _M.isArray(a) and not _M.isPointer(a) then
+        return a
+    end
+    if _M.isPointer(a) then
+        a.to = _M.decay(a)
+        return a
+    end
+    if _M.isArray(a.of) then
+        a.of = _M.decay(a.of)
+    end
+    a.to = a.of
+    a.of = nil
+    a.runtime_size = nil
+    a.compile_time_size = nil
+    a.kind = TKINDS.POINTER
+    return a
 end
 
 local function see_bounds_of_array(t, var)
-	local now = t
-	while true do
-		if _M.isArray(now) and not _M.isBase(now.of) then
-			if not now.compile_time_size then
-				_SEMANTIC.ARGUMENTS:ERROR("multidimensional array must have bounds for all dimensions except the first")
-			end
-		end
+    local now = t
+    while true do
+        if _M.isArray(now) and not _M.isBase(now.of) then
+            if not now.compile_time_size then
+                _SEMANTIC.ARGUMENTS:ERROR("multidimensional array must have bounds for all dimensions except the first")
+            end
+        end
 
-		if not now.of or not _M.isArray(now.of) then
-			break
-		end
-		
-		now = now.of
-	end
+        if not now.of or not _M.isArray(now.of) then
+            break
+        end
 
-	if var.kind == KINDS.VAR_DECLARATION_PROTOTYPE then
-		if _M.isArray(t) and not now.compile_time_size then
-			_SEMANTIC.ARGUMENTS:ERROR("assumed to have one element")
-		end
-	end
+        now = now.of
+    end
+
+    if var.kind == KINDS.VAR_DECLARATION_PROTOTYPE then
+        if _M.isArray(t) and not now.compile_time_size then
+            _SEMANTIC.ARGUMENTS:ERROR("assumed to have one element")
+        end
+    end
+end
+
+function _M.fillStruct(var, t)
+    for i, node in ipairs(var.variables) do
+        local name = node.name
+        local _lt = _M.build(node)
+        _lt.name = name
+        t.fields[name] = _lt
+    end
+    return t
 end
 
 function _M.build(var)
-
     if var.kind == KINDS.LITERAL_INT then
         return _M.literalInt()
     end
@@ -289,6 +299,16 @@ function _M.build(var)
 
     local t
 
+    if var.kind == KINDS.STRUCT_DECLARATION or var.kind == KINDS.STRUCT_DECLARATION_PROTOTYPE then
+        t = _M.struct(var)
+        if var.kind == KINDS.STRUCT_DECLARATION_PROTOTYP then
+            t.prototype = true
+        else
+            t = _M.fillStruct(var, t)
+        end
+        return t
+    end
+
     if var.kind == KINDS.FUNCTION_DECLARATION then
         t = _M._function(var)
         t.prototype = false
@@ -296,7 +316,12 @@ function _M.build(var)
         t = _M._function(var)
         t.prototype = true
     else
-        t = _M.base(var, _M.getNumeric(var), qualifiers.sign, qualifiers.outside, qualifiers.static, qualifiers.exused)
+        if qualifiers.struct then
+            t = _M.struct(var)
+        else
+            t = _M.base(var, _M.getNumeric(var), qualifiers.sign, qualifiers.outside, qualifiers.static,
+                qualifiers.exused)
+        end
     end
 
     for i, m in ipairs(var.modifiers) do
@@ -316,13 +341,13 @@ function _M.build(var)
             local _t = _M.array(t)
             _t.size = m.size
             _t.runtime_size = m.runtime_size
-			_t.compile_time_size = m.compile_time_size
-			t = _t
+            _t.compile_time_size = m.compile_time_size
+            t = _t
         end
         ::continue::
     end
 
-	see_bounds_of_array(t, var)
+    see_bounds_of_array(t, var)
 
     return t
 end
@@ -356,7 +381,7 @@ function _M.getBaseRoot(t)
         return t
     end
 
-	return t
+    return t
 end
 
 function _M.isPointer(t)
@@ -502,8 +527,7 @@ function _M.arithmeticPromotion(a, b)
 end
 
 function _M.equals(a, b)
-	print(inspect(a), inspect(b))
-	if _M.isLiteral(a) then
+    if _M.isLiteral(a) then
         a = _M.toBase(a)
     end
 
@@ -511,28 +535,28 @@ function _M.equals(a, b)
         b = _M.toBase(b)
     end
 
-	if _M.isArray(a) then
-		
-		a = _M.decay(a)
-	end
+    if _M.isArray(a) then
 
-	if _M.isArray(b) then
-		
-		b = _M.decay(b)
-	end
+        a = _M.decay(a)
+    end
+
+    if _M.isArray(b) then
+
+        b = _M.decay(b)
+    end
 
     if a.kind ~= b.kind then
         return false, "Incompatible Kinds"
     end
 
     if _M.isBase(a) then
-		if a.numeric ~= b.numeric then
-			local baseA = _M.getBaseRoot(a)
-			local baseB = _M.getBaseRoot(b)
-			
-			_SEMANTIC.ARGUMENTS:WARN(string.format("Converting [%d] : [%d]", baseA.numeric, baseB.numeric))
-		end
-		
+        if a.numeric ~= b.numeric then
+            local baseA = _M.getBaseRoot(a)
+            local baseB = _M.getBaseRoot(b)
+
+            _SEMANTIC.ARGUMENTS:WARN(string.format("Converting [%d] : [%d]", baseA.numeric, baseB.numeric))
+        end
+
         return a.type == b.type and a.sign == b.sign, "Base"
     end
 
@@ -541,12 +565,12 @@ function _M.equals(a, b)
     end
 
     if _M.isArray(a) then
-		if not a.size then
-			a.size = b.size
-		end
-		if not b.size then
-			b.size = a.size
-		end
+        if not a.size then
+            a.size = b.size
+        end
+        if not b.size then
+            b.size = a.size
+        end
 
         local low, err = _M.lowNumEquals(b.of, a.of)
         if not low then
@@ -554,20 +578,22 @@ function _M.equals(a, b)
         end
         local equal = a.const == b.const
         if a.runtime_size or b.runtime_size then
-			if type(a.size) ~= "table" and type(b.size) ~= "table"  and a.size and b.size then
-				_SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
-			end
+            if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+                _SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
+            end
             _SEEMANTIC.ARGUMENTS:ERROR("variable-sized object may not be initialized")
-		else
-			if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
-				if a.size ~= b.size then
-					_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
-				end
-			else
-				_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays  \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
-			end
-		end
-		
+        else
+            if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+                if a.size ~= b.size then
+                    _SEMANTIC.ARGUMENTS:ERROR(string.format("arrays \"%s\" \"%s\" have diferent sizes",
+                        _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+                end
+            else
+                _SEMANTIC.ARGUMENTS:ERROR(string.format("arrays  \"%s\" \"%s\" have diferent sizes",
+                    _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+            end
+        end
+
         return equal and low, "array"
     end
 
@@ -578,13 +604,13 @@ function _M.equals(a, b)
 
         for i, argA in ipairs(a.args) do
             local dargA = argA
-			if _M.isArray(argA) then
-				dargA = _M.decay(argA)
-			end
+            if _M.isArray(argA) then
+                dargA = _M.decay(argA)
+            end
             local dargB = b.args[i]
-			if _M.isArray(dargB) then
-				dargB = _M.decay(dargB)
-			end
+            if _M.isArray(dargB) then
+                dargB = _M.decay(dargB)
+            end
 
             local r = _M.lowEquals(dargA, dargB)
             if not r then
@@ -638,15 +664,15 @@ function _M.lowEquals(a, b)
         b = _M.toBase(b)
     end
 
-	if _M.isArray(a) then
-		
-		a = _M.decay(a)
-	end
+    if _M.isArray(a) then
 
-	if _M.isArray(b) then
-		
-		b = _M.decay(b)
-	end
+        a = _M.decay(a)
+    end
+
+    if _M.isArray(b) then
+
+        b = _M.decay(b)
+    end
 
     if a.kind ~= b.kind then
         return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
@@ -660,13 +686,13 @@ function _M.lowEquals(a, b)
         return a.const == b.const and _M.lowEquals(a.to, b.to), "pointerLOW"
     end
 
-	if _M.isArray(a) then
-		if not a.size then
-			a.size = b.size
-		end
-		if not b.size then
-			b.size = a.size
-		end
+    if _M.isArray(a) then
+        if not a.size then
+            a.size = b.size
+        end
+        if not b.size then
+            b.size = a.size
+        end
 
         local low, err = _M.lowNumEquals(b.of, a.of)
         if not low then
@@ -674,36 +700,38 @@ function _M.lowEquals(a, b)
         end
         local equal = a.const == b.const
         if a.runtime_size or b.runtime_size then
-			if type(a.size) ~= "table" and type(b.size) ~= "table"  and a.size and b.size then
-				_SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
-			end
+            if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+                _SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
+            end
             _SEEMANTIC.ARGUMENTS:ERROR("variable-sized object may not be initialized")
-		else
-			if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
-				if a.size ~= b.size then
-					_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
-				end
-			else
-				if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
-					if a.size ~= b.size and not (a.compile_time_size or b.compile_time_size) then
-						local err = false
-						if a.compile_time_size then
-							if b.size > a.size then
-								err = true
-							end
-						elseif b.compile_time_size then
-							if a.size > b.size then
-								err = true
-							end
-						end
-						if err then
-							_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays NUM \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
-						end
-					end
-				end
-			end
-		end
-		
+        else
+            if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+                if a.size ~= b.size then
+                    _SEMANTIC.ARGUMENTS:ERROR(string.format("arrays \"%s\" \"%s\" have diferent sizes",
+                        _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+                end
+            else
+                if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+                    if a.size ~= b.size and not (a.compile_time_size or b.compile_time_size) then
+                        local err = false
+                        if a.compile_time_size then
+                            if b.size > a.size then
+                                err = true
+                            end
+                        elseif b.compile_time_size then
+                            if a.size > b.size then
+                                err = true
+                            end
+                        end
+                        if err then
+                            _SEMANTIC.ARGUMENTS:ERROR(string.format("arrays NUM \"%s\" \"%s\" have diferent sizes",
+                                _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+                        end
+                    end
+                end
+            end
+        end
+
         return equal and low, "arrayLOW"
     end
 
@@ -714,14 +742,14 @@ function _M.lowEquals(a, b)
 
         for i, argA in ipairs(a.args) do
             local dargA = argA
-			if _M.isArray(argA) then
-				dargA = _M.decay(argA)
-			end
+            if _M.isArray(argA) then
+                dargA = _M.decay(argA)
+            end
             local dargB = b.args[i]
-			if _M.isArray(dargB) then
-				dargB = _M.decay(dargB)
-			end
-			
+            if _M.isArray(dargB) then
+                dargB = _M.decay(dargB)
+            end
+
             local r = _M.lowEquals(dargA, dargB)
             if not r then
                 return false
@@ -773,15 +801,15 @@ function _M.lowNumEquals(a, b)
         b = _M.toBase(b)
     end
 
-	if _M.isArray(a) then
-		
-		a = _M.decay(a)
-	end
+    if _M.isArray(a) then
 
-	if _M.isArray(b) then
-		
-		b = _M.decay(b)
-	end
+        a = _M.decay(a)
+    end
+
+    if _M.isArray(b) then
+
+        b = _M.decay(b)
+    end
 
     if a.kind ~= b.kind then
 
@@ -789,29 +817,28 @@ function _M.lowNumEquals(a, b)
     end
 
     if _M.isBase(a) then
-		
+
         local l, e = a.type == b.type, "baseNUM" .. a.type .. b.type
         return l, e
     end
 
     if _M.isPointer(a) then
-		local baseA = _M.getBaseRoot(a)
-		local baseB = _M.getBaseRoot(b)
-		print(inspect(baseA), inspect(baseB))
-		if baseA.type == "void" or baseB.type == "void" then
-			return "pointerNUM void"
-		end
-		local can, err = _M.lowNumEquals(a.to, b.to)
+        local baseA = _M.getBaseRoot(a)
+        local baseB = _M.getBaseRoot(b)
+        if baseA.type == "void" or baseB.type == "void" then
+            return "pointerNUM void"
+        end
+        local can, err = _M.lowNumEquals(a.to, b.to)
         return can, err
     end
 
     if _M.isArray(a) then
-		if not a.size then
-			a.size = b.size
-		end
-		if not b.size then
-			b.size = a.size
-		end
+        if not a.size then
+            a.size = b.size
+        end
+        if not b.size then
+            b.size = a.size
+        end
 
         local low, err = _M.lowNumEquals(b.of, a.of)
         if not low then
@@ -820,41 +847,44 @@ function _M.lowNumEquals(a, b)
 
         local equal = a.const == b.const
         if a.runtime_size or b.runtime_size then
-			if type(a.size) ~= "table" and type(b.size) ~= "table"  and a.size and b.size then
-				_SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
-			end
+            if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+                _SEMANTIC.ARGUMENTS:ERROR("arrays have diferent sizes")
+            end
             _SEEMANTIC.ARGUMENTS:ERROR("variable-sized object may not be initialized")
-		else
-			if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
-				if a.size ~= b.size then
-					local err = false
-					local size_err = false
+        else
+            if type(a.size) ~= "table" and type(b.size) ~= "table" and a.size and b.size then
+                if a.size ~= b.size then
+                    local err = false
+                    local size_err = false
 
-					if not (a.compile_time_size or b.compile_time_size) then
-						err = true
-					end
-					
-					local err = false
-					if a.compile_time_size then
-						if b.size > a.size then
-							size_err = true
-						end
-					elseif b.compile_time_size then
-						if a.size > b.size then
-							size_err = true
-						end
-					end
+                    if not (a.compile_time_size or b.compile_time_size) then
+                        err = true
+                    end
 
-					if err then
-						_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays NUM \"%s\" \"%s\" have diferent sizes", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
-					end
-					if size_err then
-						_SEMANTIC.ARGUMENTS:ERROR(string.format("arrays NUM \"%s\" \"%s\" excess elements in array initializer", _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
-					end
-				end
-			end
-		end
-		
+                    local err = false
+                    if a.compile_time_size then
+                        if b.size > a.size then
+                            size_err = true
+                        end
+                    elseif b.compile_time_size then
+                        if a.size > b.size then
+                            size_err = true
+                        end
+                    end
+
+                    if err then
+                        _SEMANTIC.ARGUMENTS:ERROR(string.format("arrays NUM \"%s\" \"%s\" have diferent sizes",
+                            _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+                    end
+                    if size_err then
+                        _SEMANTIC.ARGUMENTS:ERROR(string.format(
+                            "arrays NUM \"%s\" \"%s\" excess elements in array initializer",
+                            _M.getBaseRoot(a).name or "__constructor", _M.getBaseRoot(b).name or "__constructor"))
+                    end
+                end
+            end
+        end
+
         return equal and low, "arrayNUM"
     end
 
@@ -862,16 +892,16 @@ function _M.lowNumEquals(a, b)
         if #a.args ~= #b.args then
             return false
         end
-		
+
         for i, argA in ipairs(a.args) do
-			local dargA = argA
-			if _M.isArray(argA) then
-				dargA = _M.decay(argA)
-			end
+            local dargA = argA
+            if _M.isArray(argA) then
+                dargA = _M.decay(argA)
+            end
             local dargB = b.args[i]
-			if _M.isArray(dargB) then
-				dargB = _M.decay(dargB)
-			end
+            if _M.isArray(dargB) then
+                dargB = _M.decay(dargB)
+            end
             local r = _M.lowNumEquals(dargA, dargB)
             if not r then
                 return false
@@ -885,7 +915,12 @@ function _M.lowNumEquals(a, b)
             return true
         end
     end
-    return false, "NoneNUM"
+
+    if _M.isStruct(a) then
+        return a.type == b.type, string.format("Struct type \"%s\" \"%s\"", a.type, b.type)
+    end
+
+    return false, "NoneNUM == " .. a.kind
 end
 
 function _M.canCast(to, from)
@@ -919,11 +954,13 @@ function _M.canCast(to, from)
 end
 
 function _M.binary(op, a, b)
-    if _M.isPointer(a) and (_M.isNumericType(b) or _M.isLiteralNumeric(b)) and (op == "+" or op == "-") and b.type == "int" then
+    if _M.isPointer(a) and (_M.isNumericType(b) or _M.isLiteralNumeric(b)) and (op == "+" or op == "-") and b.type ==
+        "int" then
         return true, a
     end
 
-    if _M.isPointer(b) and (_M.isNumericType(a) or _M.isLiteralNumeric(a)) and (op == "+" or op == "-") and a.type == "int" then
+    if _M.isPointer(b) and (_M.isNumericType(a) or _M.isLiteralNumeric(a)) and (op == "+" or op == "-") and a.type ==
+        "int" then
         return true, b
     end
 
@@ -931,8 +968,8 @@ function _M.binary(op, a, b)
         return false, nil
     end
 
-	a.temp = true
-	b.temp = true
+    a.temp = true
+    b.temp = true
 
     if _M.isLiteral(a) then
         a = _M.literalToBase(a)
@@ -944,7 +981,7 @@ function _M.binary(op, a, b)
 
     if _M.isNumericType(a) and _M.isNumericType(b) then
         local result = _M.arithmeticPromotion(a, b)
-		result.temp = true
+        result.temp = true
         if not result then
             return false, nil
         end

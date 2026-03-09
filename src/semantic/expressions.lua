@@ -40,6 +40,16 @@ function _M.isVarRef(node)
 	return node.kind == KINDS.VAR_REF
 end
 
+local function getStruct(name)
+	local var = symbols.findStruct(name)
+
+	if not var then
+		_SEMANTIC.SERROR(string.format("Variable \"%s\" was not declared", name))
+	end
+
+	return var
+end
+
 local function getVariable(name)
 	local var = symbols.findVariable(name)
 
@@ -66,7 +76,7 @@ function _M.getBinary(tA, tB, op)
 	return can_binary, result
 end
 
-function _M.getExpression(node, no_cast, no_literal_array)
+function _M.getExpression(node, no_cast, no_literal_array, original_node)
 	if node.kind == KINDS.BINARY_EXPRESSION then
 		local left = node.left
 		local right = node.right
@@ -97,7 +107,7 @@ function _M.getExpression(node, no_cast, no_literal_array)
 
 		t.temp = true
 		
-		return can, t
+		return true, t
 	elseif node.kind == KINDS.POINTER_DEREFERENCE then
 		local can, t = _M.getExpression(node.expr, no_cast, no_literal_array)
 		local op = node.op
@@ -112,7 +122,7 @@ function _M.getExpression(node, no_cast, no_literal_array)
 
 		t = types.dereference(t)
 		
-		return can, t
+		return true, t
 	elseif node.kind == KINDS.ARRAY then
 		if no_literal_array then
 			_SEMANTIC.SERROR("Literal array is not allow here", node)
@@ -148,12 +158,26 @@ function _M.getExpression(node, no_cast, no_literal_array)
 				if not types.isArray(lbase) and not types.isPointer(lbase) then
 					_SEMANTIC.SERROR("Can't index a non array/pointer values", node)
 				end
+
 				_M.getExpression(op.index, no_cast, no_literal_array)
+
 				if types.isPointer(lbase) then
 					lbase = lbase.to
 				else
 					lbase = lbase.of
 				end
+			elseif op.kind == KINDS.FIELD_ACCESS then
+				if not types.isStruct(lbase) then
+					_SEMANTIC.SERROR("Can't access field of a non struct value", node)
+				end
+				local struct = getStruct(lbase.type)
+
+				print(inspect(node))
+
+				if not struct.fields[op.name] then
+					_SEMANTIC.SERROR(string.format("Field \"%s\" in struct \"%s\" don't exist", op.name, struct.type), node)
+				end
+				lbase = struct.fields[op.name]
 			end
 		end
 
@@ -197,7 +221,6 @@ function _M.getExpression(node, no_cast, no_literal_array)
 			if not in_args[i] then
 				_SEMANTIC.SERROR(string.format("Function Call is missing %d arguments. missing in #%d", #func.args - (i - 1), i), node)
 			end
-			print(inspect(in_args[i], arg))
 			local equal, err = types.equals(in_args[i], arg)
 			if not equal then
 				_SEMANTIC.SERROR(string.format("Function Call arguments don't match declaration %s\n%s[%s] != %s[%s]",err ,in_args[i].type, in_args[i].kind, arg.type, arg.kind), node)
@@ -205,6 +228,37 @@ function _M.getExpression(node, no_cast, no_literal_array)
 		end
 
 		return true, types.functionToBase(func)
+	elseif node.kind == KINDS.STRUCT_INIT then
+		local struct = getStruct(original_node.type)
+		struct.type = original_node.type
+
+		for i, var in ipairs(node.values) do
+			if not struct.fields[var.name] then
+				_SEMANTIC.SERROR(string.format("Field \"%s\" in struct \"%s\" don't exist", var.name, original_node.type), node)
+			end
+			local field = struct.fields[var.name]
+
+			if field.filled then
+				_SEMANTIC.SERROR(string.format("Field \"%s\" in struct \"%s\" is already filled", var.name, original_node.type), node)
+			end
+
+			local can, t = _M.getExpression(var.value, nil, true, node)
+
+			if not types.lowNumEquals(field, t) then
+				_SEMANTIC.SERROR(string.format("Field \"%s\" in struct \"%s\" don't match declaration", var.name, original_node.type), node)
+			end
+
+			field.filled = true
+		end
+
+		for i, var in pairs(struct.fields) do
+			if not var.filled then
+				_SEMANTIC.SWARN(string.format("Field \"%s\" in struct \"%s\" is not filled", var.name, original_node.type), node)
+			end
+			var.filled = false
+		end
+
+		return true, struct, true
 	end
 
 	local _, t

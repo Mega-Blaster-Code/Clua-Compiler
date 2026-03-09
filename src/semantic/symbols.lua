@@ -21,6 +21,8 @@ local stdio_used = false
 
 _M.functions = {}
 
+_M.strucs = {}
+
 local SCOPE = {}
 SCOPE.__index = SCOPE
 
@@ -116,6 +118,24 @@ function _M.declareVariable(name, t)
 	local_scope:declareVariable(name, t)
 
 	return true
+end
+
+function _M.declareStruct(name, t)
+	if _M.strucs[name] then
+		_SEMANTIC.SERROR(string.format("Struct \"%s\" is already declared", name))
+	end
+
+	_M.strucs[name] = t
+	
+	return true
+end
+
+function _M.findStruct(name)
+	if not _M.strucs[name] then
+		_SEMANTIC.SERROR(string.format("Struct \"%s\" is not declared", name))
+	end
+
+	return _M.strucs[name]
 end
 
 function _M.declareFunction(name, t)

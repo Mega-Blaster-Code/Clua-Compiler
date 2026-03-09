@@ -24,7 +24,7 @@ local __types = {
 	[PRE_TOKENS.DOUBLE] = true,
 	[PRE_TOKENS.BOOL] = true,
 	[PRE_TOKENS.VOID] = true,
-	-- [PRE_TOKENS.NAME] = true -- structs
+	[PRE_TOKENS.NAME] = true -- structs
 }
 
 local __builtin_types = {
@@ -902,6 +902,10 @@ function parser:parse_variable_types()
 		type = type.buf
 	end
 
+	local struct = false
+
+	struct = type ~= "int" and type ~= "float" and type ~= "double" and type ~= "char"
+
 	local modifiers = {}
 	local qualifiers = {}
 
@@ -1055,8 +1059,9 @@ function parser:parse_variable_types()
 			long_count = long_count,
 			sign = sign,
 			is_short = is_short,
-			is_only_void = is_only_void
-		}
+			is_only_void = is_only_void,
+			struct = struct,
+		},
 	}
 end
 
@@ -1442,21 +1447,21 @@ function parser:parse_statement()
 		return
 	end
 
-	-- if self:expect(PRE_TOKENS.STRUCT) then -- struct 'struct name{type name; type name1;};'
-	--	self:push_back(self:parse_struct())
-	--	if self.use_semicolan then
-	--		self:CEexpect(PRE_TOKENS.SEMICOLON)
-	--	end -- ";"
-	--	return
-	-- end
+	if self:expect(PRE_TOKENS.STRUCT) then -- struct 'struct name{type name; type name1;};'
+		self:push_back(self:parse_struct())
+		if self.use_semicolan then
+			self:CEexpect(PRE_TOKENS.SEMICOLON)
+		end -- ";"
+		return
+	end
 
-	-- if self:expect(PRE_TOKENS.ENUM) then -- enum 'enum name {name1, name2, name3};'
-	--	self:push_back(self:parse_enum())
-	--	if self.use_semicolan then
-	--		self:CEexpect(PRE_TOKENS.SEMICOLON)
-	--	end -- ";"
-	--	return
-	-- end
+	if self:expect(PRE_TOKENS.ENUM) then -- enum 'enum name {name1, name2, name3};'
+		self:push_back(self:parse_enum())
+		if self.use_semicolan then
+			self:CEexpect(PRE_TOKENS.SEMICOLON)
+		end -- ";"
+		return
+	end
 
 	if self:expect(PRE_TOKENS.LINE_COMMENT) then
 		self:consume()

@@ -1,13 +1,40 @@
 #require <test/stdio.hlua>
 
+struct vec2{
+	float x;
+	float y;
+};
+
+struct square{
+	vec2 position;
+	vec2 size;
+};
+
 int function main(int argc, char ** argv)
 	for(int i = 0; i < argc; i = i + 1) do
 		printInt(i);
-		printChar(':');
-		printChar(' ');
+		printChar(':':char:);
+		printChar(' ':char:);
 		printString(argv[i]);
-		printChar('\n');
+		printChar('\n':char:);
 	end
 
-	return 0;
+	vec2 pos = {
+		.x = 150.0,
+		.y = 200.0
+	};
+
+	vec2 size = {
+		.x = 100.0,
+		.y = 50.0
+	};
+
+	square my_square = {
+		.position = pos,
+		.size = size,
+	};
+
+	float sum = my_square.position.x + my_square.position.y + my_square.size.x + my_square.size.y;
+
+	return sum:int:;
 end

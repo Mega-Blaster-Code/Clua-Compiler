@@ -53,16 +53,17 @@ local expression = require("semantic.expressions")
 
 local _M = {}
 
-function _M.analyzeExpression(node, expected, no_literal_array, prototype)
-	local can, t = expression.getExpression(node, false, no_literal_array)
+function _M.analyzeExpression(node, expected, no_literal_array, prototype, original_node)
+	local can, t, skip = expression.getExpression(node, false, no_literal_array, original_node)
 
     if expected then
-        t = types.resolveLiteral(t, expected)
+        t = types.resolveLiteral(t, expected, node)
     else
         t = types.literalToBase(t)
     end
 
     if expected then
+		print(inspect(t), inspect(expected))
         local can, err = types.lowNumEquals(t, expected)
         if not can then
             _SEMANTIC.ARGUMENTS:ERROR(string.format("Expression don't match expected / %s", tostring(err),
@@ -70,7 +71,7 @@ function _M.analyzeExpression(node, expected, no_literal_array, prototype)
         end
     end
 
-    return true, t
+    return true, t, skip
 end
 
 function _M.analyzeProgram(node)
@@ -204,17 +205,17 @@ function _M.analyzeDeclaration(node, info)
     local t = types.build(node)
     local base = types.getBaseRoot(t)
 
+	base.fromInit = info.fromInit == true
+
     if node.kind == KINDS.VAR_DECLARATION then
-        local can, t = _M.analyzeExpression(node.values.values, t)
+        local can, t, skip = _M.analyzeExpression(node.values.values, t, nil, nil, node)
 		t.temp = false
         if not can then
             _SEMANTIC.SERROR("Invalid expression", node)
         end
-    end
+	end
 
-	base.fromInit = info.fromInit == true
-
-    symbols.declareVariable(base.name, t)
+	symbols.declareVariable(node.name, t)
 end
 
 function _M.analyzeRawDo(node)
@@ -245,6 +246,16 @@ function _M.analyzeIntern(node)
 	_M.analyzeLocalBlock(node.body)
 end
 
+function _M.analyzeStructDeclaration(node, info)
+	info = info or {}
+    local t = types.build(node)
+    local base = types.getBaseRoot(t)
+
+	base.fromInit = info.fromInit == true
+
+    symbols.declareStruct(node.name, t)
+end
+
 local ANALYZER_BUILD = {
     [KINDS.FUNCTION_DECLARATION] = _M.analyzeFunction,
     [KINDS.FUNCTION_DECLARATION_PROTOTYPE] = _M.analyzeFunction,
@@ -262,6 +273,7 @@ local ANALYZER_BUILD = {
     [KINDS.EXTERN] = _M.analyzeExtern,
     [KINDS.CALL_EXPRESSION] = _M.analyzeCallExpression,
 	[KINDS.INTERN] = _M.analyzeIntern,
+	[KINDS.STRUCT_DECLARATION] = _M.analyzeStructDeclaration,
 }
 
 function _M.analyze(node, info)

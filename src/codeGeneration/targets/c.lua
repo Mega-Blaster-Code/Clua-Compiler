@@ -102,9 +102,13 @@ function _M.buildVarTypes(node)
 end
 
 function _M.buildDeclaratorInit(node, name)
+	
 	name = name or ""
-
+	
 	local line = {}
+	if node.qualifiers.struct then
+		pushS(line, "struct")
+	end
 
 	pushS(line, _M.buildVarTypes(node))
 
@@ -241,6 +245,9 @@ function _M.buildExpression(node, parent_prec)
 				push(expression, "[")
 				push(expression, _M.buildExpression(op.index))
 				push(expression, "]")
+			elseif op.kind == KINDS.FIELD_ACCESS then
+				push(expression, ".")
+				push(expression, op.name)
 			end
 		end
 
@@ -257,6 +264,25 @@ function _M.buildExpression(node, parent_prec)
 		end
 
 		push(expression, ")")
+	elseif node.kind == KINDS.STRUCT_INIT then
+		push(expression, "{\n")
+
+		TABlevel = TABlevel + 1
+		for i, v in ipairs(node.values) do
+			push(expression, genTab())
+			push(expression, ".")
+			push(expression, v.name)
+			push(expression, " = ")
+			push(expression, _M.buildExpression(v.value, v))
+			push(expression, ",")
+			if i ~= #node.values then
+				push(expression, "\n")
+			end
+		end
+		TABlevel = TABlevel - 1
+		push(expression, "\n")
+		push(expression, genTab())
+		push(expression, "}")
     elseif node.kind == KINDS.VAR_REF then
         push(expression, node.name)
 	elseif node.kind == KINDS.LITERAL_INT then
@@ -531,6 +557,29 @@ function _M.buildIntern(node)
 	return table.concat(line)
 end
 
+function _M.buildStruct(node)
+	local line = {}
+
+	TABlevel = TABlevel + 1
+
+	pushS(line, "struct")
+	push(line, node.name)
+	push(line, "{")
+
+	for i, var in ipairs(node.variables) do
+		push(line, "\n")
+		push(line, genTab())
+		push(line, _M.buildDeclarator(var))
+		push(line, ";")
+	end
+
+	push(line, "\n};\n")
+
+	TABlevel = TABlevel - 1
+
+	return table.concat(line)
+end
+
 local ANALYZER_BUILD = {
     [KINDS.FUNCTION_DECLARATION] = _M.buildFunctionDeclaration,
     [KINDS.FUNCTION_DECLARATION_PROTOTYPE] = _M.buildFunctionPrototypeDeclaration,
@@ -548,6 +597,7 @@ local ANALYZER_BUILD = {
 	[KINDS.CALL_EXPRESSION] = _M.buildCall,
 	[KINDS.EXPRESSION] = _M.buildExpression,
 	[KINDS.INTERN] = _M.buildIntern,
+	[KINDS.STRUCT_DECLARATION] = _M.buildStruct,
 }
 
 function _M.generate(node)
