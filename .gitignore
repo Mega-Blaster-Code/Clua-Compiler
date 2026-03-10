@@ -39,5 +39,13 @@ src/semantic/semantic.lua
 src/semantic/statements.lua
 src/semantic/symbols.lua
 
+*.luac
+Makeluafile
+amalg.lua
+__temp_merge.lua
+
+C_inspect.lua
+C_string.lua
+
 out.c
 stdout.txt

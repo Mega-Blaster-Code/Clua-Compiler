@@ -307,7 +307,8 @@ function directives.require(self)
     local content = file:read()
     file:close()
 
-    local tokens = lexer.tokenize(name, content)
+    local tokenizer_handler = lexer.new(name, content, self.ARGUMENTS)
+	local tokens = tokenizer_handler:start()
 
     self:inject(tokens)
 end
@@ -906,6 +907,7 @@ function processor:start()
     while self.pos <= #self.tokens do
         if self:expect(PRE_TOKENS.PREPROCESSOR_TOKEN) then
             local name = self:consume().buf:sub(2, -1)
+			print(name)
             directives[name](self)
         else
             local expanded = false

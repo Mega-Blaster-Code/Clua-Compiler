@@ -1,7 +1,11 @@
 local src = debug.getinfo(1, "S").source:sub(2)
 src = src:match("(.*/)")
 
-package.path = src .. "?.lua;" .. src .. "?/init.lua;" .. package.path
+print("LINKING")
+
+package.path = src .. "?.lua;" .. src .. "?/init.lua;" .. src .. "src/?.lua;" .. src .. "src/semantic/?.lua;" .. src .. "src/codeGeneration/?.lua;" .. src .. "semantic/?.lua;" .. src .. "codeGeneration/?.lua;" .. package.path
+
+print("REQUIRE")
 
 local ARGUMENTS = require("AFS")
 
@@ -12,9 +16,13 @@ do
     PRE_TOKENS, KEYWORDS = info[1], info[2]
 end
 
+print("BASIC")
+
 local inspect = require("C_inspect")
 local file2io = require("file2io")
 local color8 = require("color8")
+
+print("COMPILER")
 
 local preprocessor = require("preprocessor")
 local lexer = require("lexer")
@@ -23,6 +31,8 @@ local semantic = require("semantic")
 local codeGen = require("codeGeneration")
 
 local file_path = "main.clua"
+
+print("START")
 
 if type(ARGUMENTS:GET_FLAG("-f")) == "string" then
     file_path = ARGUMENTS:GET_FLAG("-f")
@@ -39,7 +49,10 @@ end
 local content = code_handler:read()
 code_handler:close()
 
-local tokens = lexer.tokenize(file_path, content)
+print("LEXER")
+
+local tokenezer = lexer.new(file_path, content, ARGUMENTS)
+local tokens = tokenezer:start()
 
 if type(ARGUMENTS:GET_FLAG("-tt")) == "string" then
     file_path = ARGUMENTS:GET_FLAG("-tt")
@@ -50,6 +63,8 @@ end
 if type(ARGUMENTS:GET_FLAG("-TT")) == "boolean" then
     os.exit(0)
 end
+
+print("PREPROCESSOR")
 
 local preprocessor_directive = preprocessor.new(tokens, ARGUMENTS, file_path)
 
@@ -64,6 +79,8 @@ end
 if type(ARGUMENTS:GET_FLAG("-PP")) == "boolean" then
     os.exit(0)
 end
+
+print("AST")
 
 local ast_handler = parser.new(file_path, ARGUMENTS, _i)
 local AST_TREE = ast_handler:start(not ARGUMENTS:GET_FLAG("-no-semicolan"))
@@ -80,8 +97,12 @@ if type(ARGUMENTS:GET_FLAG("-SS")) == "boolean" then
     os.exit(0)
 end
 
+print("SEMANTIC")
+
 local semantic_handler = semantic.new(file_path, AST_TREE, ARGUMENTS)
 semantic_handler:start()
+
+print("CODE GEN")
 
 codeGen.load(ARGUMENTS)
 
