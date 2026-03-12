@@ -238,7 +238,7 @@ function _M.decay(a)
         return a
     end
     if _M.isPointer(a) then
-        a.to = _M.decay(a)
+        a.to = _M.decay(a.to)
         return a
     end
     if _M.isArray(a.of) then
@@ -552,7 +552,11 @@ function _M.equals(a, b)
     end
 
     if a.kind ~= b.kind then
-        return false, "Incompatible Kinds"
+		a = _M.integerPromotion(a)
+		b = _M.integerPromotion(b)
+		if a.kind ~= b.kind then
+        	return false, "Incompatible Kinds"
+		end
     end
 
     if _M.isBase(a) then
@@ -563,7 +567,13 @@ function _M.equals(a, b)
             _SEMANTIC.ARGUMENTS:WARN(string.format("Converting [%d] : [%d]", baseA.numeric, baseB.numeric))
         end
 
-        return a.type == b.type and a.sign == b.sign, "Base"
+		local can = a.type == b.type
+
+		if can and a.sign ~= b.sign then
+			_SEMANTIC.ARGUMENTS:WARN(string.format("Using unsigned and signed %s", a.type))
+		end
+
+        return can, "Base" .. a.type .. b.type .. a.sign .. b.sign
     end
 
     if _M.isPointer(a) then
@@ -686,7 +696,11 @@ function _M.lowEquals(a, b)
     end
 
     if a.kind ~= b.kind then
-        return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
+		a = _M.integerPromotion(a)
+		b = _M.integerPromotion(b)
+		if a.kind ~= b.kind then
+        	return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
+		end
     end
 
     if _M.isBase(a) then
@@ -822,9 +836,13 @@ function _M.lowNumEquals(a, b)
         b = _M.decay(b)
     end
 
+	
     if a.kind ~= b.kind then
-
-        return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
+		a = _M.integerPromotion(a)
+		b = _M.integerPromotion(b)
+		if a.kind ~= b.kind then
+        	return false, string.format("Incompatible Kinds \"%s\" != \"%s\"", a.kind, b.kind)
+		end
     end
 
     if _M.isBase(a) then
@@ -935,6 +953,14 @@ function _M.lowNumEquals(a, b)
 end
 
 function _M.canCast(to, from)
+	if _M.isArray(to) then
+
+        to = _M.decay(to)
+    end
+
+    if _M.isArray(from) then
+        from = _M.decay(from)
+    end
 
     if _M.isNumericType(to) and _M.isNumericType(from) then
         return true
@@ -942,22 +968,20 @@ function _M.canCast(to, from)
 
     if _M.isPointer(to) and _M.isPointer(from) then
 
-        if _M.lowEquals(to, from) then
-            return true
-        end
-
+		
+		
         if _M.isBase(to.to) and to.to.type == "void" then
             return true
         end
-
+		
         if _M.isBase(from.to) and from.to.type == "void" then
             return true
         end
-
-        return false
+	
+        return _M.lowNumEquals(to, from)
     end
 
-    if _M.isArray(to) or _M.isArray(from) then
+    if _M.isArray(to) and _M.isArray(from) then
         return false, "array"
     end
 
@@ -965,6 +989,10 @@ function _M.canCast(to, from)
 end
 
 function _M.binary(op, a, b)
+	a = _M.decay(a)
+
+	b = _M.decay(b)
+
     if _M.isPointer(a) and (_M.isNumericType(b) or _M.isLiteralNumeric(b)) and (op == "+" or op == "-") and b.type ==
         "int" then
         return true, a
@@ -975,9 +1003,9 @@ function _M.binary(op, a, b)
         return true, b
     end
 
-    if _M.isArray(a) or _M.isArray(b) then
-        return false, nil
-    end
+	if _M.isPointer(b) and _M.isPointer(a) and (op == "==" or op == "~=") then
+		return true, a
+	end
 
     a.temp = true
     b.temp = true

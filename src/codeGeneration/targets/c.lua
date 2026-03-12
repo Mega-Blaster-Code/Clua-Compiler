@@ -9,13 +9,11 @@ function _M.lower(ast)
 end
 
 local prec = {
-    ["||"] = 1,
-    ["&&"] = 2,
-    ["|"] = 3,
-    ["^"] = 4,
-    ["&"] = 5,
+    ["or"] = 1,
+    ["not"] = 2,
+    ["and"] = 5,
     ["=="] = 6,
-    ["!="] = 6,
+    ["~="] = 6,
     ["<"] = 7,
     ["<="] = 7,
     [">"] = 7,
@@ -292,7 +290,11 @@ function _M.buildExpression(node, parent_prec)
         push(expression, node.value)
     elseif node.kind == KINDS.LITERAL_FLOAT then
         push(expression, node.value)
-    end
+    elseif node.kind == KINDS.LITERAL_STRING then
+		push(expression, "\"")
+        push(expression, node.value)
+		push(expression, "\"")
+	end
 
     return table.concat(expression)
 end

@@ -55,7 +55,7 @@ local tokenezer = lexer.new(file_path, content, ARGUMENTS)
 local tokens = tokenezer:start()
 
 if type(ARGUMENTS:GET_FLAG("-tt")) == "string" then
-    file_path = ARGUMENTS:GET_FLAG("-tt")
+    local file_path = ARGUMENTS:GET_FLAG("-tt")
     local fpp = require("fpp")
     fpp(file_path, tokens)
 end
@@ -71,7 +71,7 @@ local preprocessor_directive = preprocessor.new(tokens, ARGUMENTS, file_path)
 local _i = preprocessor_directive:start()
 
 if type(ARGUMENTS:GET_FLAG("-pp")) == "string" then
-    file_path = ARGUMENTS:GET_FLAG("-pp")
+    local file_path = ARGUMENTS:GET_FLAG("-pp")
     local fpp = require("fpp")
     fpp(file_path, _i)
 end

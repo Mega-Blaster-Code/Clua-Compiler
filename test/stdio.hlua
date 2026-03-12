@@ -2,6 +2,21 @@
 #define STDIO_CLUA
 
 intern
+
+struct FILE{
+	char *_ptr;
+    int _cnt;
+    char *_base;
+    int _flag;
+    int _file;
+    int _charbuf;
+    int _bufsiz;
+    char *_tmpfname;
+};
+
+FILE * function fopen(char* file_path, char* mode);
+--FILE * function fopen(char* file_path, char* mode);
+
 int function printInt(int _v);
 int function printIntLong(int long _v);
 int function printIntLongLong(int long long _v);

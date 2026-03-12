@@ -212,11 +212,11 @@ function _M.getExpression(node, no_cast, no_literal_array, original_node)
 
 		value_t = types.literalToBase(value_t)
 
-		local can_cast, result = types.canCast(value_t, type_t)
+		local can_cast, err = types.canCast(value_t, type_t)
 
 		if not can_cast then
-			_SEMANTIC.SERROR(string.format("illegal casting with %s %s[%s] %s[%s]", result, type_t.type, type_t.kind,
-				value_t.type, value_t.kind), node)
+			_SEMANTIC.SERROR(string.format("illegal casting with %s[%s] %s[%s]; %s", types.getBaseRoot(type_t).type, types.getBaseRoot(type_t).kind,
+				types.getBaseRoot(value_t).type, types.getBaseRoot(value_t).kind, err), node)
 		end
 
 		return true, type_t
@@ -241,7 +241,7 @@ function _M.getExpression(node, no_cast, no_literal_array, original_node)
 			end
 			local equal, err = types.equals(in_args[i], arg)
 			if not equal then
-				_SEMANTIC.SERROR(string.format("Function Call arguments don't match declaration %s\n%s[%s] != %s[%s]",err ,in_args[i].type, in_args[i].kind, arg.type, arg.kind), node)
+				_SEMANTIC.SERROR(string.format("Function Call arguments don't match declaration %s\n%s[%s] != %s[%s]",err ,types.getBaseRoot(in_args[i]).type, types.getBaseRoot(in_args[i]).kind, types.getBaseRoot(arg).type, types.getBaseRoot(arg).kind), node)
 			end
 		end
 
@@ -281,6 +281,10 @@ function _M.getExpression(node, no_cast, no_literal_array, original_node)
 		end
 
 		return true, struct, true
+	elseif node.kind == KINDS.LITERAL_STRING then
+		local base = types.base({type = "char", name = string.format("__string_%d%d%d", math.random(0, 99999999), math.random(0, 99999999), math.random(0, 99999999))}, 1, "unsigned", false, false, false)
+		local t = types.pointer(base)
+		return true, t
 	end
 
 	local _, t

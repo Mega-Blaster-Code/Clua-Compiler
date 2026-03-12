@@ -517,6 +517,28 @@ function parser:parse_primary(is_pointer)
 		return node
 	end
 
+	if self:expect(PRE_TOKENS.OPEN_BRACKETS) then
+		self:consume()
+		local values_of_array = {}
+		while true do
+			local expr = self:parse_expression()
+			values_of_array[#values_of_array + 1] = expr
+			if not self:expect(PRE_TOKENS.COMMA) then
+				break
+			end
+			self:consume()
+		end
+		self:Eexpect(PRE_TOKENS.CLOSE_BRACKETS)
+		self:consume()
+		return {
+			kind = KINDS.EXPRESSION,
+			values = {
+				kind = KINDS.ARRAY,
+				values = values_of_array
+			}
+		}
+	end
+
 	self:error(string.format("Invalid primary expression ['%s'] ['%s']", tok.token, tok.buf))
 end
 
@@ -709,27 +731,7 @@ function parser:parse_or()
 end
 
 function parser:parse_expression()
-	if self:expect(PRE_TOKENS.OPEN_BRACKETS) then
-		self:consume()
-		local values_of_array = {}
-		while true do
-			local expr = self:parse_expression()
-			values_of_array[#values_of_array + 1] = expr
-			if not self:expect(PRE_TOKENS.COMMA) then
-				break
-			end
-			self:consume()
-		end
-		self:Eexpect(PRE_TOKENS.CLOSE_BRACKETS)
-		self:consume()
-		return {
-			kind = KINDS.EXPRESSION,
-			values = {
-				kind = KINDS.ARRAY,
-				values = values_of_array
-			}
-		}
-	end
+	
 	return {
 		kind = KINDS.EXPRESSION,
 		values = self:parse_or()

@@ -183,7 +183,9 @@ function _M.new(file_path, str, ARGUMENTS)
     self.line = 1
     self.column = 1
 
-    self.tokens = {}
+    self.tokens = {
+		bss = {}
+	}
 
     self.buffer = {}
 
@@ -308,46 +310,20 @@ function lexer:matchPatterns()
             return true
         end
 
-        self:pushBack("[")
-        self:newToken(PRE_TOKENS.OPEN_BRACKETS)
-
         while self:peek() ~= "\"" do
             local c = self:consume()
-
-            if c == "\\" then
-                local code = self:consume()
-                if not code then
-                    self:error("Invalid string")
-                end
-				self:clearBuffer()
-				self.buffer = {tostring(string.byte(unescape(c .. code)))}
-                self:newToken(PRE_TOKENS.NUMBER_INT)
-
-            else
-				self:clearBuffer()
-				self.buffer = {tostring(string.byte(c))}
-                self:newToken(PRE_TOKENS.NUMBER_INT)
-                if not self:peek() then
-                    self:error("Invalid string")
-                end
-            end
-            self:pushBack(",")
-            self:newToken(PRE_TOKENS.COMMA)
+			self:pushBack(c)
         end
-
+		
         self:consume()
 
+		self:newToken(PRE_TOKENS.STRING_LITERAL)
+		
         self:clearBuffer()
-
-        self:pushBack("0")
-        self:newToken(PRE_TOKENS.NUMBER_INT)
-
-        self:pushBack("]")
-        self:newToken(PRE_TOKENS.CLOSE_BRACKETS)
 
         return true
     end
-
+	
     if self:peek() == "-" and self:peek(1) == "-" and self:peek(2) == "-" and self:peek(3) and self:peek(4) == "*" then
         self:consume()
         self:consume()
@@ -544,6 +520,7 @@ function lexer:matchPatterns()
         if self:peek():match("%-") and self:peek(1):match(">") then
             self:consume()
             self:consume()
+			self:pushBack("->")
             self:newToken(PRE_TOKENS.POINTER)
             self:clearBuffer()
             return true

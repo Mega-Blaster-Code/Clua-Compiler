@@ -529,258 +529,121 @@ function processor:replace(otokens, ntokens)
     end
 end
 
+local function getTokens(self)
+	local line = self.line
+	local column = self.column
+
+	local left_off = 10
+	local right_off = 10
+
+	local tokens = {}
+	do -- local variables
+		local i = 0
+		while i < left_off do
+			local left = self.tokens[-i + self.last_token_index]
+			if left then
+				if left.token == PRE_TOKENS.NEW_LINE then
+					break
+				end
+				table.insert(tokens, {
+					index = -i,
+					token = left
+				})
+			end
+			i = i + 1
+		end
+		i = 1
+		while i < right_off do
+			local right = self.tokens[i + self.last_token_index]
+			if right then
+				if right.token == PRE_TOKENS.NEW_LINE then
+					break
+				end
+				table.insert(tokens, {
+					index = i,
+					token = right
+				})
+			end
+			i = i + 1
+		end
+
+		table.sort(tokens, function(a, b)
+			return a.index < b.index
+		end)
+	end
+
+	return tokens
+end
+
+local function buildMessage(self, msg, er, tokens)
+	local message = {}
+
+	message[#message + 1] = (string.format("%s ['%s'] %sline:%s column:%s%s\n", er, self.file_path,
+		color8.sfcolor(50, 150, 255), self.line, self.column, color8.sreset()))
+	message[#message + 1] = (msg)
+	message[#message + 1] = ("\n")
+
+	for i, token in ipairs(tokens) do
+		if token.token.__from_preprocessor then
+			message[#message + 1] = color8.sfcolor(50, 200, 200)
+		else
+			message[#message + 1] = color8.sreset()
+		end
+
+		message[#message + 1] = (token.token.buf:gsub("%c", " "))
+		if #token.token.buf > 0 then
+			message[#message + 1] = (" ")
+		end
+	end
+	message[#message + 1] = ("\n")
+
+	color8.error = true
+	message[#message + 1] = color8.sfcolor(0, 128, 128)
+	for i, token in ipairs(tokens) do
+		if #token.token.buf > 0 then
+			for j = 1, #token.token.buf do
+				if token.index == 0 then
+					message[#message + 1] = color8.sfcolor(255, 0, 0)
+					message[#message + 1] = ("^")
+				else
+					message[#message + 1] = color8.sfcolor(0, 128, 128)
+					message[#message + 1] = ("-")
+				end
+			end
+			message[#message + 1] = color8.sfcolor(0, 128, 128)
+			if i ~= #tokens then
+				message[#message + 1] = ("-")
+			end
+
+		end
+	end
+	message[#message + 1] = color8.sreset()
+
+	return table.concat(message)
+end
+
 function processor:error(msg, raise)
-    local line = self.line
-    local column = self.column
+	local tokens = getTokens(self)
 
-    local left_off = 10
-    local right_off = 10
+	local message = buildMessage(self, msg, "SINTAX ERROR", tokens)
 
-    local tokens = {}
-    do
-        local i = 0
-        while i < left_off do
-            local left = self.tokens[-i + self.last_token_index]
-            if left then
-                if left.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = -i,
-                    token = left
-                })
-            end
-            i = i + 1
-        end
-        i = 1
-        while i < right_off do
-            local right = self.tokens[i + self.last_token_index]
-            if right then
-                if right.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = i,
-                    token = right
-                })
-            end
-            i = i + 1
-        end
-
-        table.sort(tokens, function(a, b)
-            return a.index < b.index
-        end)
-    end
-
-    local message = {}
-
-    message[#message + 1] = string.format(string.format("PREPROCESSOR line %s column %s\n", line, column))
-    message[#message + 1] = msg
-    message[#message + 1] = "\n\n"
-
-    for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
-        if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
-        end
-    end
-    message[#message + 1] = ("\n")
-
-    color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
-    for i, token in ipairs(tokens) do
-        if #token.token.buf > 0 then
-            for j = 1, #token.token.buf do
-                if token.index == 0 then
-                    message[#message + 1] = color8.sfcolor(255, 0, 0)
-                    message[#message + 1] = ("^")
-                else
-                    message[#message + 1] = color8.sfcolor(0, 128, 128)
-                    message[#message + 1] = ("-")
-                end
-            end
-            message[#message + 1] = color8.sfcolor(0, 128, 128)
-            if i ~= #tokens then
-                message[#message + 1] = ("-")
-            end
-        end
-    end
-    message[#message + 1] = color8.sreset()
-    message[#message + 1] = ("\n")
-
-    message = table.concat(message)
-
-    self.ARGUMENTS:ERROR(message)
-    os.exit(1)
+	self.ARGUMENTS:ERROR(message)
 end
 
 function processor:warn(msg, raise)
-    local line = self.line
-    local column = self.column
+	local tokens = getTokens(self)
 
-    local left_off = 10
-    local right_off = 10
+	local message = buildMessage(self, msg, "SINTAX WARNING", tokens)
 
-    local tokens = {}
-    do -- local variables
-        local i = 0
-        while i < left_off do
-            local left = self.tokens[-i + self.last_token_index]
-            if left then
-                if left.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = -i,
-                    token = left
-                })
-            end
-            i = i + 1
-        end
-        i = 1
-        while i < right_off do
-            local right = self.tokens[i + self.last_token_index]
-            if right then
-                if right.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = i,
-                    token = right
-                })
-            end
-            i = i + 1
-        end
-
-        table.sort(tokens, function(a, b)
-            return a.index < b.index
-        end)
-    end
-
-    local message = {}
-
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n")
-
-    for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
-        if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
-        end
-    end
-    message[#message + 1] = ("\n")
-
-    color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
-    for i, token in ipairs(tokens) do
-        if #token.token.buf > 0 then
-            for j = 1, #token.token.buf do
-                if token.index == 0 then
-                    message[#message + 1] = color8.sfcolor(255, 190, 0)
-                    message[#message + 1] = ("^")
-                else
-                    message[#message + 1] = color8.sfcolor(0, 128, 128)
-                    message[#message + 1] = ("-")
-                end
-            end
-            message[#message + 1] = color8.sfcolor(0, 128, 128)
-            if i ~= #tokens then
-                message[#message + 1] = ("-")
-            end
-
-        end
-    end
-    message[#message + 1] = color8.sreset()
-
-    message = table.concat(message)
-
-    self.ARGUMENTS:WARN(message)
+	self.ARGUMENTS:WARN(message)
 end
 
-function processor:info(msg)
-    local line = self.line
-    local column = self.column
+function processor:notification(msg, raise)
+	local tokens = getTokens(self)
 
-    local left_off = 10
-    local right_off = 10
+	local message = buildMessage(self, msg, "SINTAX INFO", tokens)
 
-    local tokens = {}
-    do -- local variables
-        local i = 0
-        while i < left_off do
-            local left = self.tokens[-i + self.last_token_index]
-            if left then
-                if left.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = -i,
-                    token = left
-                })
-            end
-            i = i + 1
-        end
-        i = 1
-        while i < right_off do
-            local right = self.tokens[i + self.last_token_index]
-            if right then
-                if right.token == PRE_TOKENS.NEW_LINE then
-                    break
-                end
-                table.insert(tokens, {
-                    index = i,
-                    token = right
-                })
-            end
-            i = i + 1
-        end
-
-        table.sort(tokens, function(a, b)
-            return a.index < b.index
-        end)
-    end
-
-    local message = {}
-
-    message[#message + 1] = (string.format("PARSER ['%s'] line %s column %s\n", self.file_path, line, column))
-    message[#message + 1] = (msg)
-    message[#message + 1] = ("\n\n")
-
-    for i, token in ipairs(tokens) do
-        message[#message + 1] = (token.token.buf:gsub("%c", " "))
-        if #token.token.buf > 0 then
-            message[#message + 1] = (" ")
-        end
-    end
-    message[#message + 1] = ("\n")
-
-    color8.error = true
-    message[#message + 1] = color8.sfcolor(0, 128, 128)
-    for i, token in ipairs(tokens) do
-        if #token.token.buf > 0 then
-            for j = 1, #token.token.buf do
-                if token.index == 0 then
-                    message[#message + 1] = color8.sfcolor(90, 90, 90)
-                    message[#message + 1] = ("^")
-                else
-                    message[#message + 1] = color8.sfcolor(0, 128, 128)
-                    message[#message + 1] = ("-")
-                end
-            end
-            message[#message + 1] = color8.sfcolor(0, 128, 128)
-            if i ~= #tokens then
-                message[#message + 1] = ("-")
-            end
-
-        end
-    end
-    message[#message + 1] = color8.sreset()
-    message[#message + 1] = ("\n")
-
-    local message = table.concat(message)
-
-    self.ARGUMENTS:INFO(message)
+	self.ARGUMENTS:INFO(message)
 end
 
 function processor:CEexpect(pretoken, length)
@@ -907,7 +770,9 @@ function processor:start()
     while self.pos <= #self.tokens do
         if self:expect(PRE_TOKENS.PREPROCESSOR_TOKEN) then
             local name = self:consume().buf:sub(2, -1)
-			print(name)
+			if not directives[name] then
+				self:error(string.format("Invalid preprocessor [%s]", name))
+			end
             directives[name](self)
         else
             local expanded = false
