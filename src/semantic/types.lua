@@ -442,7 +442,7 @@ end
 
 function _M.integerPromotion(t)
     if not _M.isNumericType(t) then
-        return nil
+        return t
     end
 
     local result = _M.copyBase(t)
@@ -542,16 +542,15 @@ function _M.equals(a, b)
     end
 
     if _M.isArray(a) then
-
         a = _M.decay(a)
     end
 
     if _M.isArray(b) then
-
         b = _M.decay(b)
     end
 
     if a.kind ~= b.kind then
+		
 		a = _M.integerPromotion(a)
 		b = _M.integerPromotion(b)
 		if a.kind ~= b.kind then

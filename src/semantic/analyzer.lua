@@ -168,7 +168,6 @@ function _M.analyzeReturn(node)
 
     if node.kind == KINDS.VOID_RETURN then
         if not types.isVoid(is_f) then
-			print(inspect(is_f), inspect(t))
             _SEMANTIC.SERROR("Return type don't match return type of function", node)
         end
         scope.has_return = true
@@ -186,8 +185,6 @@ function _M.analyzeReturn(node)
     end
 
     if not types.lowNumEquals(is_f, t) then
-		print(inspect(is_f), inspect(t))
-		print("fghghj")
         _SEMANTIC.SERROR("Return type don't match return type of function", node)
     end
 

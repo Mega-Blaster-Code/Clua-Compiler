@@ -1,6 +1,6 @@
 -- tokens -> parser -> AST
 local _M = {}
-_M.VERSION = "0.1 LUA"
+_M.VERSION = "0.3 CLUA"
 
 local inspect = require("C_inspect")
 local file2io = require("file2io")

@@ -1,10 +1,12 @@
 .vscode/
-src/AFS
 
 *.obj
+*.o
 obj/
 *.exe
 *.dll
+
+cluaObj/
 
 ast_math.lua
 builtin.lua
