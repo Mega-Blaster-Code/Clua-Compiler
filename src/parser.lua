@@ -157,6 +157,8 @@ function _M.new(file_path, ARGUMENTS, tokens)
 	self.AST = {}
 	self.pos = 1
 
+	self.types = {}
+
 	self.buffer = {
 		kind = KINDS.PROGRAM,
 		body = {}
@@ -164,6 +166,15 @@ function _M.new(file_path, ARGUMENTS, tokens)
 
 	self.scopes = {self.buffer.body}
 	return self
+end
+
+function parser:newType(name)
+	print("NEW", name)
+	self.types[name] = true
+end
+
+function parser:isType(name)
+	return self.types[name]
 end
 
 function parser:versionError(msg)
@@ -1209,6 +1220,8 @@ function parser:parse_struct()
 
 	local name = self:validate_name(self:CEexpect(PRE_TOKENS.NAME).buf)
 
+	self:newType(name)
+
 	if self:expect(PRE_TOKENS.SEMICOLON) then
 		return {
 			kind = KINDS.STRUCT_DECLARATION_PROTOTYPE,
@@ -1321,21 +1334,30 @@ function parser:isAssignment()
 		if self:token_in_class(t, __types) then
 			return false
 		end
+
+		if self:Texpect(PRE_TOKENS.ASTERISK) then
+			return false
+		end
+
+		if self:isType(self:peek(offset).buf) then
+			return false
+		end
+
 		offset = offset + 1
 	end
 	return true
 end
 
 function parser:parse_statement()
+	if self:expect(PRE_TOKENS.NAME) and self:expect(PRE_TOKENS.OPEN_PARENTHESES, 1) then -- function call 'test();'
+		self:push_back(self:parse_call())
+		if self.use_semicolan then
+			self:CEexpect(PRE_TOKENS.SEMICOLON)
+		end -- ";"
+		return
+	end
+	
 	if self:isAssignment() then
-		if self:expect(PRE_TOKENS.NAME) and self:expect(PRE_TOKENS.OPEN_PARENTHESES, 1) then -- function call 'test();'
-			self:push_back(self:parse_call())
-			if self.use_semicolan then
-				self:CEexpect(PRE_TOKENS.SEMICOLON)
-			end -- ";"
-			return
-		end
-
 		if not (self:expect(PRE_TOKENS.NAME) and self:expect(PRE_TOKENS.NAME, 1)) then
 			self:push_back(self:parse_assignment())
 			if self.use_semicolan then

@@ -1,46 +1,2041 @@
 {
   body = { {
-      kind = "__VAR_DECLARATION",
-      modifiers = {},
-      name = "x",
-      qualifiers = {
-        exused = false,
-        is_only_void = false,
-        is_short = false,
-        long_count = 0,
-        outside = false,
-        sign = "signed",
-        static = false,
-        struct = false
+      __INTERN = true,
+      body = { {
+          kind = "__STRUCT_DECLARATION",
+          name = "FILE",
+          variables = { {
+              kind = "__STRUCT_VAR_DECLARATION",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_ptr",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__STRUCT_VAR_DECLARATION",
+              modifiers = {},
+              name = "_cnt",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__STRUCT_VAR_DECLARATION",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_base",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__STRUCT_VAR_DECLARATION",
+              modifiers = {},
+              name = "_flag",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__STRUCT_VAR_DECLARATION",
+              modifiers = {},
+              name = "_file",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__STRUCT_VAR_DECLARATION",
+              modifiers = {},
+              name = "_charbuf",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__STRUCT_VAR_DECLARATION",
+              modifiers = {},
+              name = "_bufsiz",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__STRUCT_VAR_DECLARATION",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_tmpfname",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } }
+        }, {
+          kind = "__VAR_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          name = "stdout",
+          qualifiers = {
+            exused = true,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = true
+          },
+          type = "FILE"
+        }, {
+          kind = "__VAR_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          name = "stdin",
+          qualifiers = {
+            exused = true,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = true
+          },
+          type = "FILE"
+        }, {
+          kind = "__VAR_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          name = "stderr",
+          qualifiers = {
+            exused = true,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = true
+          },
+          type = "FILE"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_file_path",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_mode",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "fopen",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = true
+          },
+          type = "FILE"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_line",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "unsigned",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fputs",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_c",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 2,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fputw",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fflush",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "filename",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "unsigned",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "mode",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "unsigned",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "freopen",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = true
+          },
+          type = "FILE"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_file_path",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "remove",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_old_name",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "unsigned",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_new_name",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "unsigned",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "rename",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = {},
+          body = {},
+          callee = "tmpfile",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = true
+          },
+          type = "FILE"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fgetc",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_str",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_n",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fgets",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "char"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_c",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fputc",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = {},
+          body = {},
+          callee = "getchar",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_str",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "gets",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "char"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_ptr",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "void"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_size",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 2,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_nmemb",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 2,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fread",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 2,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_ptr",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "void"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_size",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 2,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_nmemb",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 2,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fwrite",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 2,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_offset",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 1,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            }, {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "whence",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "fseek",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "ftell",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 1,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "rewind",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = true,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "void"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "feof",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "ferror",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_str",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "perror",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = true,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "void"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_stream",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = true
+              },
+              type = "FILE"
+            } },
+          body = {},
+          callee = "fclose",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "scanfInt",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 1,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "scanfIntLong",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 2,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "scanfIntLongLong",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = true,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "scanfIntShort",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "scanfChar",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "float"
+            } },
+          body = {},
+          callee = "scanfFloat",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "double"
+            } },
+          body = {},
+          callee = "scanfDouble",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 1,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "double"
+            } },
+          body = {},
+          callee = "scanfDoubleLong",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_str",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "unsigned",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "scanfString",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_pointer",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "void"
+            } },
+          body = {},
+          callee = "scanfPointer",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "printInt",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 1,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "printIntLong",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 2,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "printIntLongLong",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = true,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "int"
+            } },
+          body = {},
+          callee = "printIntShort",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "printChar",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "float"
+            } },
+          body = {},
+          callee = "printFloat",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "double"
+            } },
+          body = {},
+          callee = "printDouble",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = {},
+              name = "_v",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 1,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "double"
+            } },
+          body = {},
+          callee = "printDoubleLong",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_str",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "unsigned",
+                static = false,
+                struct = false
+              },
+              type = "char"
+            } },
+          body = {},
+          callee = "printString",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        }, {
+          args = { {
+              kind = "__VAR_DECLARATION_PROTOTYPE",
+              modifiers = { {
+                  kind = "__POINTER_MODIFIER"
+                } },
+              name = "_pointer",
+              qualifiers = {
+                exused = false,
+                is_only_void = false,
+                is_short = false,
+                long_count = 0,
+                outside = false,
+                sign = "signed",
+                static = false,
+                struct = false
+              },
+              type = "void"
+            } },
+          body = {},
+          callee = "printPointer",
+          kind = "__FUNCTION_DECLARATION_PROTOTYPE",
+          modifiers = {},
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "int"
+        },
+        __INTERN = true
       },
-      type = "int",
-      values = {
-        kind = "__EXPRESSION",
-        values = {
-          kind = "__RAW_SIZEOF",
-          values = {
-            modifiers = {},
-            qualifiers = {
-              exused = false,
-              is_only_void = false,
-              is_short = false,
-              long_count = 0,
-              outside = false,
-              sign = "signed",
-              static = false,
-              struct = false
-            },
-            type = "int"
-          }
-        }
-      }
+      kind = "__INTERN"
     }, {
-      kind = "__VAR_DECLARATION",
+      kind = "__EXTERN",
+      raw = '\n#include <stdio.h>\n\n#define printInt(a)         printf("%d", (a))\n#define printIntLong(a)     printf("%ld", (a))\n#define printIntLongLong(a) printf("%lld", (a))\n#define printIntShort(a)    printf("%hd", (a))\n#define printChar(a)        printf("%c", (a))\n#define printFloat(a)       printf("%f", (a))\n#define printDouble(a)      printf("%f", (a))\n#define printDoubleLong(a)  printf("%Lf", (a))\n#define printString(a)      printf("%s", (a))\n#define printPointer(a)     printf("%p", (void*)(a))\n#define printCustom(a, b)   printf(a, *a)\n\n#define scanfInt(a);         printf("%d", (a))\n#define scanfIntLong(a);     printf("%ld", (a))\n#define scanfIntLongLong(a); printf("%lld", (a))\n#define scanfIntShort(a);    printf("%hd", (a))\n#define scanfChar(a);        printf("%c", (a))\n#define scanfFloat(a);       printf("%f", (a))\n#define scanfDouble(a);      printf("%f", (a))\n#define scanfDoubleLong(a);  printf("%Lf", (a))\n#define scanfString(a);      printf("%s", (a))\n#define scanfPointer(a);     printf("%p", (a))\n\n'
+    }, {
+      args = { {
+          kind = "__VAR_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          name = "path",
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "char"
+        } },
+      body = { {
+          kind = "__VAR_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              kind = "__POINTER_MODIFIER"
+            } },
+          name = "arquivo",
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = true
+          },
+          type = "FILE"
+        }, {
+          kind = "__VAR_DECLARATION_PROTOTYPE",
+          modifiers = { {
+              compile_time_size = true,
+              kind = "__ARRAY_MODIFIER",
+              runtime_size = false,
+              size = 256
+            } },
+          name = "buffer",
+          qualifiers = {
+            exused = false,
+            is_only_void = false,
+            is_short = false,
+            long_count = 0,
+            outside = false,
+            sign = "signed",
+            static = false,
+            struct = false
+          },
+          type = "char"
+        }, {
+          kind = "__VAR_ASSIGNMENT",
+          lvalue = {
+            kind = "__EXPRESSION",
+            values = {
+              kind = "__VAR_REF",
+              name = "arquivo"
+            }
+          },
+          rvalue = {
+            kind = "__EXPRESSION",
+            values = {
+              args = { {
+                  kind = "__EXPRESSION",
+                  values = {
+                    kind = "__VAR_REF",
+                    name = "path"
+                  }
+                }, {
+                  kind = "__EXPRESSION",
+                  values = {
+                    kind = "__LITERAL_STRING",
+                    value = "rb"
+                  }
+                } },
+              callee = "fopen",
+              kind = "__CALL_EXPRESSION"
+            }
+          }
+        }, {
+          body = { {
+              args = { {
+                  kind = "__EXPRESSION",
+                  values = {
+                    kind = "__LITERAL_STRING",
+                    value = "Error ao abrir o arquivo"
+                  }
+                } },
+              callee = "perror",
+              kind = "__CALL_EXPRESSION"
+            }, {
+              kind = "__VOID_RETURN",
+              value = {
+                modifiers = {},
+                qualifiers = {
+                  exused = false,
+                  is_only_void = true,
+                  is_short = false,
+                  long_count = 0,
+                  outside = false,
+                  sign = "signed",
+                  static = false,
+                  struct = false
+                },
+                type = "void"
+              }
+            } },
+          condition = {
+            kind = "__EXPRESSION",
+            values = {
+              kind = "__BINARY_EXPRESSION",
+              left = {
+                kind = "__VAR_REF",
+                name = "arquivo"
+              },
+              op = "==",
+              right = {
+                expr = {
+                  kind = "__LITERAL_INT",
+                  value = "0"
+                },
+                kind = "__UNARY_EXPRESSION",
+                op = "-"
+              }
+            }
+          },
+          kind = "__IF"
+        }, {
+          body = { {
+              args = { {
+                  kind = "__EXPRESSION",
+                  values = {
+                    kind = "__VAR_REF",
+                    name = "buffer"
+                  }
+                } },
+              callee = "printString",
+              kind = "__CALL_EXPRESSION"
+            } },
+          condition = {
+            kind = "__EXPRESSION",
+            values = {
+              kind = "__BINARY_EXPRESSION",
+              left = {
+                args = { {
+                    kind = "__EXPRESSION",
+                    values = {
+                      kind = "__VAR_REF",
+                      name = "buffer"
+                    }
+                  }, {
+                    kind = "__EXPRESSION",
+                    values = {
+                      kind = "__VAR_SIZEOF",
+                      values = {
+                        kind = "__VAR_REF",
+                        values = "buffer"
+                      }
+                    }
+                  }, {
+                    kind = "__EXPRESSION",
+                    values = {
+                      kind = "__VAR_REF",
+                      name = "arquivo"
+                    }
+                  } },
+                callee = "fgets",
+                kind = "__CALL_EXPRESSION"
+              },
+              op = "~=",
+              right = {
+                expr = {
+                  kind = "__LITERAL_INT",
+                  value = "0"
+                },
+                kind = "__UNARY_EXPRESSION",
+                op = "-"
+              }
+            }
+          },
+          kind = "__WHILE"
+        }, {
+          args = { {
+              kind = "__EXPRESSION",
+              values = {
+                kind = "__VAR_REF",
+                name = "arquivo"
+              }
+            } },
+          callee = "fclose",
+          kind = "__CALL_EXPRESSION"
+        } },
+      callee = "readFile",
+      kind = "__FUNCTION_DECLARATION",
       modifiers = {},
-      name = "y",
       qualifiers = {
         exused = false,
-        is_only_void = false,
+        is_only_void = true,
         is_short = false,
         long_count = 0,
         outside = false,
@@ -48,17 +2043,20 @@
         static = false,
         struct = false
       },
-      type = "int",
-      values = {
-        kind = "__EXPRESSION",
-        values = {
-          kind = "__LITERAL_INT",
-          value = "10"
-        }
-      }
+      type = "void"
     }, {
       args = {},
       body = { {
+          args = { {
+              kind = "__EXPRESSION",
+              values = {
+                kind = "__LITERAL_STRING",
+                value = "testa.txt"
+              }
+            } },
+          callee = "readFile",
+          kind = "__CALL_EXPRESSION"
+        }, {
           kind = "__RETURN",
           values = {
             kind = "__EXPRESSION",

@@ -17,6 +17,12 @@
 #define FILE_READ_WRITE_OVERWRITE_BINARY : "wb+"
 #define FILE_READ_APPEND_BINARY : "ab+"
 
+#define EOF : -1
+#define NULL : -0
+#define SEEK_SET : 0
+#define SEEK_CUR : 1
+#define SEEK_END : 2
+
 intern
 
 struct FILE{ -- gcc
@@ -30,23 +36,47 @@ struct FILE{ -- gcc
     char *_tmpfname;
 };
 
-FILE *stdout;
-FILE *stdin;
-FILE *stderr;
+FILE exused *stdout;
+FILE exused *stdin;
+FILE exused *stderr;
 
 FILE * function fopen(char* _file_path, char* _mode);
 
-int function fputs(FILE *_stream, char *_line);
-int function fputc(FILE *_stream, char _c);
-int function fputw(FILE *_stream, int long long _c);
-int function fwrite(void *_ptr, size_t _size, size_t _count, FILE *_stream);
+int function fputs(char unsigned *_line, FILE *_stream);
+int function fputw(int long long _c, FILE *_stream);
 
---int function fputs(FILE *_stream, char *_line);
---char function fgetc(FILE *_stream);
---int function fputw(FILE *_stream, int long long _c);
---int function fputw(FILE *_stream, int long long _c);
---int function fwrite(const void *_ptr, size_t _size, size_t _count, FILE *_stream);
---FILE * function fopen(char* file_path, char* mode);
+int function fflush(FILE *_stream);
+FILE *function freopen(char unsigned *filename, char unsigned *mode, FILE *stream);
+int function remove(char * _file_path); 
+int function rename(char unsigned * _old_name , char unsigned * _new_name);
+FILE *function tmpfile();
+int function fgetc(FILE *_stream);
+char *function fgets(char *_str, int _n, FILE *_stream);
+int function fputc(char _c, FILE *_stream);
+int function getchar();
+char *function gets(char *_str);
+int long long function fread(void *_ptr, int long long _size, int long long _nmemb, FILE *_stream);
+int long long function fwrite(void *_ptr, int long long _size, int long long _nmemb, FILE *_stream);
+
+int function fseek(FILE *_stream, int long _offset, int whence);
+int long function ftell(FILE *_stream);
+void function rewind(FILE *_stream);
+int function feof(FILE *_stream);
+int function ferror(FILE *_stream);
+void function perror(char *_str);
+
+int function fclose(FILE *_stream);
+
+int function scanfInt(int _v);
+int function scanfIntLong(int long _v);
+int function scanfIntLongLong(int long long _v);
+int function scanfIntShort(int short _v);
+int function scanfChar(char _v);
+int function scanfFloat(float _v);
+int function scanfDouble(double _v);
+int function scanfDoubleLong(double long _v);
+int function scanfString(char unsigned *_str);
+int function scanfPointer(void *_pointer);
 
 int function printInt(int _v);
 int function printIntLong(int long _v);
@@ -56,8 +86,9 @@ int function printChar(char _v);
 int function printFloat(float _v);
 int function printDouble(double _v);
 int function printDoubleLong(double long _v);
-int function printString(char *_str);
+int function printString(char unsigned *_str);
 int function printPointer(void *_pointer);
+
 inend
 
 extern
@@ -74,6 +105,17 @@ extern
 #define printString(a)      printf("%s", (a))
 #define printPointer(a)     printf("%p", (void*)(a))
 #define printCustom(a, b)   printf(a, *a)
+
+#define scanfInt(a);         printf("%d", (a))
+#define scanfIntLong(a);     printf("%ld", (a))
+#define scanfIntLongLong(a); printf("%lld", (a))
+#define scanfIntShort(a);    printf("%hd", (a))
+#define scanfChar(a);        printf("%c", (a))
+#define scanfFloat(a);       printf("%f", (a))
+#define scanfDouble(a);      printf("%f", (a))
+#define scanfDoubleLong(a);  printf("%Lf", (a))
+#define scanfString(a);      printf("%s", (a))
+#define scanfPointer(a);     printf("%p", (a))
 
 exend
 

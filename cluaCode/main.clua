@@ -1,7 +1,24 @@
+#require <cluaCode/stdio.hlua>
 
-int x = sizeof(int);
-int y = 10;
+void function readFile(char *path)
+	FILE *arquivo;
+	char [256] buffer;
+
+	arquivo = fopen(path, FILE_READ_BINARY);
+
+	if (arquivo == NULL) then
+		perror("Error ao abrir o arquivo");
+		return void;
+	end
+
+	while(fgets(buffer, sizeof(buffer), arquivo) ~= NULL) do
+		printString(buffer);
+	end
+
+	fclose(arquivo);
+end
 
 int function main()
+	readFile("testa.txt");
 	return 0;
 end

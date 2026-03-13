@@ -13,7 +13,7 @@ local prec = {
     ["not"] = 2,
     ["and"] = 5,
     ["=="] = 6,
-    ["~="] = 6,
+    ["!="] = 6,
     ["<"] = 7,
     ["<="] = 7,
     [">"] = 7,
@@ -104,9 +104,6 @@ function _M.buildDeclaratorInit(node, name)
 	name = name or ""
 	
 	local line = {}
-	if node.qualifiers.struct then
-		pushS(line, "struct")
-	end
 
 	pushS(line, _M.buildVarTypes(node))
 
@@ -162,6 +159,12 @@ function _M.buildExpression(node, parent_prec)
         if op == "//" then
             op = "/"
         end
+		
+		if op == "~=" then
+			op = "!="
+			node.op = "!="
+		end
+
         local my_prec = prec[op]
 
         local left = _M.buildExpression(node.left, my_prec)
@@ -299,7 +302,6 @@ function _M.buildExpression(node, parent_prec)
 		push(expression, _M.buildDeclaratorInit(node.values))
 		push(expression, ")")
 	elseif node.kind == KINDS.VAR_SIZEOF then
-		print("dfghfgh")
 		push(expression, "sizeof(")
 		push(expression, node.values.values)
 		push(expression, ")")
@@ -575,7 +577,7 @@ function _M.buildStruct(node)
 
 	TABlevel = TABlevel + 1
 
-	pushS(line, "struct")
+	pushS(line, "typedef struct")
 	push(line, node.name)
 	push(line, "{")
 
@@ -586,7 +588,9 @@ function _M.buildStruct(node)
 		push(line, ";")
 	end
 
-	push(line, "\n};\n")
+	pushS(line, "\n}")
+	push(line, node.name)
+	pushS(line, ";\n")
 
 	TABlevel = TABlevel - 1
 
@@ -598,10 +602,12 @@ function _M.buildStructPrototype(node)
 
 	TABlevel = TABlevel + 1
 
-	pushS(line, "struct")
+	pushS(line, "typedef struct")
 	push(line, node.name)
 
-	push(line, ";\n")
+	pushS(line, "\n}")
+	push(line, node.name)
+	pushS(line, ";\n")
 
 	TABlevel = TABlevel - 1
 

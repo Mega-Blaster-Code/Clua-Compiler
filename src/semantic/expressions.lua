@@ -44,7 +44,7 @@ local function getStruct(name)
 	local var = symbols.findStruct(name)
 
 	if not var then
-		_SEMANTIC.SERROR(string.format("Variable \"%s\" was not declared", name))
+		_SEMANTIC.SERROR(string.format("Struct \"%s\" was not declared", name))
 	end
 
 	return var
@@ -92,7 +92,6 @@ function _M.getExpression(node, no_cast, no_literal_array, original_node)
 	if node.kind == KINDS.BINARY_EXPRESSION then
 		local left = node.left
 		local right = node.right
-
 		local can_left, t_left = _M.getExpression(left, no_cast, no_literal_array)
 
 		local can_right, t_right = _M.getExpression(right, no_cast, no_literal_array)
