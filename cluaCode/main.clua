@@ -1,11 +1,7 @@
-#require <cluaCode/stdio.hlua>
-#require <cluaCode/test.hlua>
 
-char * s1 = "hello";
-char * s2 = "word";
+int x = sizeof(int);
+int y = 10;
 
 int function main()
-	char _c = s1[0]; 
-	printInt(add(10, 10));
-	return add(_c:int:, 10);
-end 
+	return 0;
+end

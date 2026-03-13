@@ -1,0 +1,87 @@
+{
+  body = { {
+      kind = "__VAR_DECLARATION",
+      modifiers = {},
+      name = "x",
+      qualifiers = {
+        exused = false,
+        is_only_void = false,
+        is_short = false,
+        long_count = 0,
+        outside = false,
+        sign = "signed",
+        static = false,
+        struct = false
+      },
+      type = "int",
+      values = {
+        kind = "__EXPRESSION",
+        values = {
+          kind = "__RAW_SIZEOF",
+          values = {
+            modifiers = {},
+            qualifiers = {
+              exused = false,
+              is_only_void = false,
+              is_short = false,
+              long_count = 0,
+              outside = false,
+              sign = "signed",
+              static = false,
+              struct = false
+            },
+            type = "int"
+          }
+        }
+      }
+    }, {
+      kind = "__VAR_DECLARATION",
+      modifiers = {},
+      name = "y",
+      qualifiers = {
+        exused = false,
+        is_only_void = false,
+        is_short = false,
+        long_count = 0,
+        outside = false,
+        sign = "signed",
+        static = false,
+        struct = false
+      },
+      type = "int",
+      values = {
+        kind = "__EXPRESSION",
+        values = {
+          kind = "__LITERAL_INT",
+          value = "10"
+        }
+      }
+    }, {
+      args = {},
+      body = { {
+          kind = "__RETURN",
+          values = {
+            kind = "__EXPRESSION",
+            values = {
+              kind = "__LITERAL_INT",
+              value = "0"
+            }
+          }
+        } },
+      callee = "main",
+      kind = "__FUNCTION_DECLARATION",
+      modifiers = {},
+      qualifiers = {
+        exused = false,
+        is_only_void = false,
+        is_short = false,
+        long_count = 0,
+        outside = false,
+        sign = "signed",
+        static = false,
+        struct = false
+      },
+      type = "int"
+    } },
+  kind = "__PROGRAM"
+}

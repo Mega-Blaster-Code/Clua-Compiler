@@ -294,8 +294,16 @@ function _M.buildExpression(node, parent_prec)
 		push(expression, "\"")
         push(expression, node.value)
 		push(expression, "\"")
+	elseif node.kind == KINDS.RAW_SIZEOF then
+		push(expression, "sizeof(")
+		push(expression, _M.buildDeclaratorInit(node.values))
+		push(expression, ")")
+	elseif node.kind == KINDS.VAR_SIZEOF then
+		print("dfghfgh")
+		push(expression, "sizeof(")
+		push(expression, node.values.values)
+		push(expression, ")")
 	end
-
     return table.concat(expression)
 end
 

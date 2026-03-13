@@ -108,13 +108,13 @@ if type(ARGUMENTS:GET_FLAG("-o")) == "string" then
     output_file = ARGUMENTS:GET_FLAG("-o")
 end
 
-local codeGen_handler = codeGen.new(output_file, target, clean_AST_TREE, ARGUMENTS)
+local codeGen_handler = codeGen.new(output_file, target, AST_TREE, ARGUMENTS)
 local out_content = codeGen_handler:start()
 
 local output_file_handler = file2io.open(output_file or ("out." .. target), "wb")
 output_file_handler:write(out_content)
 output_file_handler:close()
 
-io.stderr:write(string.format("%sSUCESS%s  compiled to file %s\"%s\"%s [%s%s%s]", color8.sfcolor(0, 255, 50),
+io.stderr:write(string.format("%sSUCESS%s  compiled to file %s\"%s\"%s [%s%s%s]\n", color8.sfcolor(0, 255, 50),
     color8.sreset(), color8.sfcolor(100, 150, 255), output_file, color8.sreset(), color8.sfcolor(255, 100, 255), target,
     color8.sreset()))

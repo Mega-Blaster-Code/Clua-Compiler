@@ -138,10 +138,6 @@ function _M.declareStruct(name, t)
 end
 
 function _M.findStruct(name)
-	if not _M.strucs[name] then
-		_SEMANTIC.SERROR(string.format("Struct \"%s\" is not declared", name))
-	end
-
 	return _M.strucs[name]
 end
 

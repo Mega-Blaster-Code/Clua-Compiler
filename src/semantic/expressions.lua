@@ -50,6 +50,18 @@ local function getStruct(name)
 	return var
 end
 
+local function getUnsafeVariable(name)
+	local var = symbols.findVariable(name)
+
+	return var
+end
+
+local function getUnsafeStruct(name)
+	local var = symbols.findStruct(name)
+
+	return var
+end
+
 local function getVariable(name)
 	local var = symbols.findVariable(name)
 
@@ -285,6 +297,25 @@ function _M.getExpression(node, no_cast, no_literal_array, original_node)
 		local base = types.base({type = "char", name = string.format("__string_%d%d%d", math.random(0, 99999999), math.random(0, 99999999), math.random(0, 99999999))}, 1, "unsigned", false, false, false)
 		local t = types.pointer(base)
 		return true, t
+	elseif node.kind == KINDS.RAW_SIZEOF then
+		local size = types.sizeof(types.build(node.values))
+		return true, types.literalInt()
+	elseif node.kind == KINDS.VAR_SIZEOF then
+		local var = node.values.values
+
+		local _v = getUnsafeVariable(var)
+		local _s = getUnsafeStruct(var)
+
+		if _s then
+			_SEMANTIC.SERROR(string.format("Can't get sizeof struct"))
+		end
+
+		if not _v and not _s then
+			_SEMANTIC.SERROR(string.format("Can't get sizeof undeclared variable"))
+		end
+
+
+		return true, types.literalInt()
 	end
 
 	local _, t

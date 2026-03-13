@@ -57,7 +57,7 @@ function _M.analyzeExpression(node, expected, no_literal_array, prototype, origi
 	local can, t, skip = expression.getExpression(node, false, no_literal_array, original_node)
 
     if expected then
-        t = types.resolveLiteral(t, expected, node)
+        t = types.resolveLiteral(t, expected)
     else
         t = types.literalToBase(t)
     end

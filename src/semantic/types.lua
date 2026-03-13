@@ -122,7 +122,8 @@ function _M.struct(var)
         kind = TKINDS.STRUCT,
         fields = {},
         temp = false,
-        type = var.type
+        type = var.type,
+		prototype = true,
     }
 end
 
@@ -305,6 +306,7 @@ function _M.build(var)
             t.prototype = true
         else
             t = _M.fillStruct(var, t)
+			t.prototype = false
         end
         return t
     end
@@ -395,7 +397,7 @@ function _M.isPointer(t)
 end
 
 function _M.isArray(t)
-    return t.kind == TKINDS.ARRAY
+    return t and t.kind == TKINDS.ARRAY
 end
 
 function _M.isStruct(t)
@@ -411,7 +413,7 @@ function _M.isBase(t)
 end
 
 function _M.isLiteral(t)
-    return t.kind == TKINDS.LITERAL
+    return t and t.kind == TKINDS.LITERAL
 end
 
 function _M.isTemp(t)
@@ -419,6 +421,13 @@ function _M.isTemp(t)
 end
 
 function _M.resolveLiteral(value, target)
+	if not value then
+		_SEMANTIC.ARGUMENTS:ERROR("Invalid Literal value")
+	end
+
+	if not target then
+		_SEMANTIC.ARGUMENTS:ERROR("Invalid Literal target")
+	end
 
     if _M.isLiteral(value) then
         local base = _M.copyBase(_M.getBaseRoot(target))
@@ -1070,6 +1079,18 @@ function _M.sizeof(t)
         return inside_size * t.size
     end
 
+	if t.kind == TKINDS.STRUCT then
+		
+		_SEMANTIC.ARGUMENTS:ERROR("Can't get sizeof a struct")
+		if t.prototype then
+		end
+		local size = 0
+		for i, v in pairs(t.fields) do
+			size = size + _M.sizeof(v)
+		end
+		return size
+	end
+
     if _M.isBase(t) then
         return types_sizes[t.type][t.numeric or NUMERIC_DEFAULT]
     end
@@ -1078,7 +1099,7 @@ function _M.sizeof(t)
         _SEMANTIC.ARGUMENTS:ERROR("Can't get sizeof function")
     end
 
-    _SEMANTIC.ARGUMENTS:ERROR(string.format("Can't get sizeof [%s]", tostring(t.type)))
+    _SEMANTIC.ARGUMENTS:ERROR(string.format("Can't get sizeof [%s]", tostring(t.kind)))
 end
 
 return _M

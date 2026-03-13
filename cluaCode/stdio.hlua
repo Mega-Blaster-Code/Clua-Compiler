@@ -1,9 +1,25 @@
 #ifndef STDIO_CLUA
 #define STDIO_CLUA
 
+#define FILE_READ : "r"
+#define FILE_WRITE : "w"
+#define FILE_APPEND : "a"
+
+#define FILE_READ_BINARY : "rb"
+#define FILE_WRITE_BINARY : "wb"
+#define FILE_APPEND_BINARY : "ab"
+
+#define FILE_READ_WRITE : "r+"
+#define FILE_READ_WRITE_OVERWRITE : "w+"
+#define FILE_READ_APPEND : "a+"
+
+#define FILE_READ_WRITE_BINARY : "rb+"
+#define FILE_READ_WRITE_OVERWRITE_BINARY : "wb+"
+#define FILE_READ_APPEND_BINARY : "ab+"
+
 intern
 
-struct FILE{
+struct FILE{ -- gcc
 	char *_ptr;
     int _cnt;
     char *_base;
@@ -14,7 +30,22 @@ struct FILE{
     char *_tmpfname;
 };
 
-FILE * function fopen(char* file_path, char* mode);
+FILE *stdout;
+FILE *stdin;
+FILE *stderr;
+
+FILE * function fopen(char* _file_path, char* _mode);
+
+int function fputs(FILE *_stream, char *_line);
+int function fputc(FILE *_stream, char _c);
+int function fputw(FILE *_stream, int long long _c);
+int function fwrite(void *_ptr, size_t _size, size_t _count, FILE *_stream);
+
+--int function fputs(FILE *_stream, char *_line);
+--char function fgetc(FILE *_stream);
+--int function fputw(FILE *_stream, int long long _c);
+--int function fputw(FILE *_stream, int long long _c);
+--int function fwrite(const void *_ptr, size_t _size, size_t _count, FILE *_stream);
 --FILE * function fopen(char* file_path, char* mode);
 
 int function printInt(int _v);
